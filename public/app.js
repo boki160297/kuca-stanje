@@ -221,15 +221,16 @@ async function showApp() {
 
 async function loadData() {
     try {
-        const [inv, shop, cook] = await Promise.all([
+        const [inv, shop] = await Promise.all([
             api('GET', '/inventory'),
-            api('GET', '/shopping'),
-            api('GET', '/cookbook')
+            api('GET', '/shopping')
         ]);
         inventory = inv;
         shoppingList = shop;
-        cookbookRecipes = cook;
     } catch (err) { console.error('Greška pri učitavanju:', err); }
+    try {
+        cookbookRecipes = await api('GET', '/cookbook');
+    } catch (err) { cookbookRecipes = []; }
     renderAll();
 }
 
