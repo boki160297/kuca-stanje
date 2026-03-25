@@ -21,8 +21,11 @@ const CATEGORY_COLORS = {
 // ---- State ----
 let inventory = [];
 let shoppingList = [];
+let cookbookRecipes = [];
 let activePage = 'pocetna';
 let selectedCategory = null;
+let selectedRecipeId = null;
+let lastAiRecipe = null;
 let currentUser = null;
 
 // ---- API Helper ----
@@ -218,12 +221,14 @@ async function showApp() {
 
 async function loadData() {
     try {
-        const [inv, shop] = await Promise.all([
+        const [inv, shop, cook] = await Promise.all([
             api('GET', '/inventory'),
-            api('GET', '/shopping')
+            api('GET', '/shopping'),
+            api('GET', '/cookbook')
         ]);
         inventory = inv;
         shoppingList = shop;
+        cookbookRecipes = cook;
     } catch (err) { console.error('Greška pri učitavanju:', err); }
     renderAll();
 }
@@ -232,6 +237,7 @@ function renderAll() {
     renderDashboard();
     renderCategoriesGrid();
     renderShoppingList();
+    renderCookbookList();
     updateNavBadges();
 }
 
@@ -242,7 +248,8 @@ const PAGE_TITLES = {
     pocetna: 'Kućne Zalihe',
     inventar: 'Inventar',
     kupovina: 'Kupovina',
-    recepti: 'AI Recepti'
+    kuharica: 'Kuharica',
+    recepti: 'AI Kuhar'
 };
 
 function navigateTo(page) {
@@ -254,17 +261,21 @@ function navigateTo(page) {
     navItems.forEach(n => n.classList.remove('active'));
     document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
 
+    const hasSubView = (page === 'inventar' && selectedCategory) || (page === 'kuharica' && selectedRecipeId);
     if (page === 'inventar' && selectedCategory) {
-        topBarTitle.textContent = `${CATEGORY_ICONS[selectedCategory] || '📦'} ${selectedCategory}`;
+        topBarTitle.textContent = selectedCategory === '__all__' ? '📋 Sve namirnice' : `${CATEGORY_ICONS[selectedCategory] || '📦'} ${selectedCategory}`;
+        btnBack.style.display = '';
+    } else if (page === 'kuharica' && selectedRecipeId) {
+        const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
+        topBarTitle.textContent = r ? r.title : 'Recept';
         btnBack.style.display = '';
     } else {
         topBarTitle.textContent = PAGE_TITLES[page] || page;
         btnBack.style.display = 'none';
     }
 
-    if (page === 'inventar') {
-        showCategoriesView();
-    }
+    if (page === 'inventar' && !selectedCategory) showCategoriesView();
+    if (page === 'kuharica' && !selectedRecipeId) showCookbookListView();
 
     contentEl.scrollTop = 0;
 }
@@ -272,6 +283,7 @@ function navigateTo(page) {
 navItems.forEach(item => {
     item.addEventListener('click', () => {
         selectedCategory = null;
+        selectedRecipeId = null;
         navigateTo(item.dataset.page);
     });
 });
@@ -281,6 +293,11 @@ btnBack.addEventListener('click', () => {
         selectedCategory = null;
         showCategoriesView();
         topBarTitle.textContent = PAGE_TITLES.inventar;
+        btnBack.style.display = 'none';
+    } else if (activePage === 'kuharica' && selectedRecipeId) {
+        selectedRecipeId = null;
+        showCookbookListView();
+        topBarTitle.textContent = PAGE_TITLES.kuharica;
         btnBack.style.display = 'none';
     }
 });
@@ -345,18 +362,19 @@ document.getElementById('btn-quick-kupovina').addEventListener('click', () => op
 //   NAV BADGES
 // =====================
 function updateNavBadges() {
+    const kuharicaCount = document.getElementById('kuharica-count');
     if (inventory.length > 0) {
         inventarCount.textContent = inventory.length;
         inventarCount.style.display = '';
-    } else {
-        inventarCount.style.display = 'none';
-    }
+    } else { inventarCount.style.display = 'none'; }
     if (shoppingList.length > 0) {
         kupovinaCount.textContent = shoppingList.length;
         kupovinaCount.style.display = '';
-    } else {
-        kupovinaCount.style.display = 'none';
-    }
+    } else { kupovinaCount.style.display = 'none'; }
+    if (cookbookRecipes.length > 0) {
+        kuharicaCount.textContent = cookbookRecipes.length;
+        kuharicaCount.style.display = '';
+    } else { kuharicaCount.style.display = 'none'; }
 }
 
 // =====================
@@ -890,7 +908,267 @@ document.getElementById('btn-remove-all').addEventListener('click', async () => 
 
 // ---- Keyboard shortcuts ----
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); }
+    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); closeRecipeFormModal(); }
+});
+
+// =====================
+//   COOKBOOK (KUHARICA)
+// =====================
+const cookbookList = document.getElementById('cookbook-list');
+const kuharicaListView = document.getElementById('kuharica-list-view');
+const kuharicaDetailView = document.getElementById('kuharica-detail-view');
+const recipeDetailCard = document.getElementById('recipe-detail-card');
+const searchKuharica = document.getElementById('search-kuharica');
+
+function showCookbookListView() {
+    kuharicaListView.style.display = '';
+    kuharicaDetailView.style.display = 'none';
+    renderCookbookList();
+}
+
+function renderCookbookList() {
+    const search = searchKuharica.value.toLowerCase().trim();
+    let recipes = cookbookRecipes.slice();
+    if (search) recipes = recipes.filter(r => r.title.toLowerCase().includes(search));
+
+    if (recipes.length === 0) {
+        cookbookList.innerHTML = `
+            <div class="empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                </svg>
+                <p>${search ? 'Nema rezultata' : 'Kuharica je prazna'}</p>
+                <span>${search ? 'Pokušajte drugi pojam' : 'Dodajte recept ručno ili spremite AI recept'}</span>
+            </div>`;
+        return;
+    }
+
+    cookbookList.innerHTML = recipes.map(r => {
+        const ings = (typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients) || [];
+        const preview = ings.slice(0, 3).map(i => i.name).join(', ');
+        return `<div class="cookbook-card" data-id="${r.id}">
+            <div class="cookbook-card-title">${escapeHtml(r.title)}</div>
+            <div class="cookbook-card-meta">
+                ${r.prep_time ? `<span>⏱ ${escapeHtml(r.prep_time)}</span>` : ''}
+                ${r.difficulty ? `<span>📊 ${escapeHtml(r.difficulty)}</span>` : ''}
+                ${r.servings ? `<span>👤 ${escapeHtml(r.servings)}</span>` : ''}
+            </div>
+            <span class="cookbook-card-cat">${escapeHtml(r.category || 'Ostalo')}</span>
+            ${preview ? `<div class="cookbook-card-preview">Sastojci: ${escapeHtml(preview)}${ings.length > 3 ? '...' : ''}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    cookbookList.querySelectorAll('.cookbook-card').forEach(card => {
+        card.addEventListener('click', () => openRecipeDetail(card.dataset.id));
+    });
+}
+
+searchKuharica.addEventListener('input', renderCookbookList);
+
+function openRecipeDetail(id) {
+    selectedRecipeId = id;
+    const r = cookbookRecipes.find(r => r.id == id);
+    if (!r) return;
+
+    kuharicaListView.style.display = 'none';
+    kuharicaDetailView.style.display = '';
+    topBarTitle.textContent = r.title;
+    btnBack.style.display = '';
+
+    const ingredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
+    const steps = typeof r.steps === 'string' ? JSON.parse(r.steps) : r.steps;
+
+    const ingredientsList = ingredients.map(ing => {
+        const invMatch = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+        let status;
+        if (invMatch) {
+            status = `<span class="ing-status ing-have">✓ Imate: ${formatQty(invMatch.quantity)} ${invMatch.unit}</span>`;
+        } else {
+            status = `<span class="ing-status ing-miss">✗ Nedostaje</span>`;
+        }
+        return `<li>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.name)} ${status}</li>`;
+    }).join('');
+
+    const stepsList = steps.map((step, i) =>
+        `<li><span class="step-num">${i + 1}</span><span>${escapeHtml(step)}</span></li>`
+    ).join('');
+
+    const tip = r.tip ? `<div class="recipe-tip"><strong>Savjet:</strong> ${escapeHtml(r.tip)}</div>` : '';
+
+    recipeDetailCard.innerHTML = `
+        <div class="recipe-header">
+            <h3>${escapeHtml(r.title)}</h3>
+            <div class="recipe-meta">
+                ${r.prep_time ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${escapeHtml(r.prep_time)}</span>` : ''}
+                ${r.difficulty ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>${escapeHtml(r.difficulty)}</span>` : ''}
+                ${r.servings ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${escapeHtml(r.servings)}</span>` : ''}
+            </div>
+        </div>
+        <div class="recipe-section">
+            <h4>Sastojci</h4>
+            <ul class="recipe-ingredients">${ingredientsList}</ul>
+        </div>
+        <div class="recipe-section">
+            <h4>Priprema</h4>
+            <ol class="recipe-steps">${stepsList}</ol>
+        </div>
+        ${tip}
+    `;
+
+    const missingCount = ingredients.filter(ing => !inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase())).length;
+    document.getElementById('btn-add-missing').style.display = missingCount > 0 ? '' : 'none';
+
+    contentEl.scrollTop = 0;
+}
+
+document.getElementById('btn-add-missing').addEventListener('click', async () => {
+    const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
+    if (!r) return;
+    const ingredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
+    const missing = ingredients.filter(ing => !inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase()));
+    if (missing.length === 0) { alert('Imate sve sastojke!'); return; }
+
+    let added = 0;
+    for (const ing of missing) {
+        try {
+            await api('POST', '/shopping', { name: ing.name, quantity: 1, unit: 'kom', category: 'Ostalo' });
+            added++;
+        } catch (e) { console.error(e); }
+    }
+    await loadData();
+    alert(`${added} namirnica dodano na listu za kupovinu!`);
+});
+
+document.getElementById('btn-edit-recipe').addEventListener('click', () => {
+    const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
+    if (r) openRecipeFormModal(r);
+});
+
+document.getElementById('btn-delete-recipe').addEventListener('click', async () => {
+    if (!confirm('Obrisati ovaj recept iz kuharice?')) return;
+    try {
+        await api('DELETE', `/cookbook/${selectedRecipeId}`);
+        cookbookRecipes = cookbookRecipes.filter(r => r.id != selectedRecipeId);
+        selectedRecipeId = null;
+        showCookbookListView();
+        topBarTitle.textContent = PAGE_TITLES.kuharica;
+        btnBack.style.display = 'none';
+        updateNavBadges();
+    } catch (err) { alert(err.message); }
+});
+
+// ---- Recipe Form Modal ----
+const recipeFormOverlay = document.getElementById('modal-recipe-overlay');
+const recipeFormEl = document.getElementById('recipe-form');
+const ingredientsRows = document.getElementById('ingredients-rows');
+const stepsRows = document.getElementById('steps-rows');
+
+document.getElementById('btn-add-recipe').addEventListener('click', () => openRecipeFormModal());
+document.getElementById('btn-close-recipe-modal').addEventListener('click', closeRecipeFormModal);
+recipeFormOverlay.addEventListener('click', (e) => { if (e.target === recipeFormOverlay) closeRecipeFormModal(); });
+
+function addIngredientRow(amount = '', name = '') {
+    const div = document.createElement('div');
+    div.className = 'dynamic-row';
+    div.innerHTML = `
+        <input type="text" class="row-amount" placeholder="Količina" value="${escapeHtml(amount)}">
+        <input type="text" placeholder="Naziv sastojka" value="${escapeHtml(name)}">
+        <button type="button" class="btn-remove-row">&times;</button>
+    `;
+    div.querySelector('.btn-remove-row').addEventListener('click', () => div.remove());
+    ingredientsRows.appendChild(div);
+}
+
+function addStepRow(text = '') {
+    const div = document.createElement('div');
+    div.className = 'dynamic-row';
+    div.innerHTML = `
+        <input type="text" placeholder="Opišite korak..." value="${escapeHtml(text)}">
+        <button type="button" class="btn-remove-row">&times;</button>
+    `;
+    div.querySelector('.btn-remove-row').addEventListener('click', () => div.remove());
+    stepsRows.appendChild(div);
+}
+
+document.getElementById('btn-add-ingredient').addEventListener('click', () => addIngredientRow());
+document.getElementById('btn-add-step').addEventListener('click', () => addStepRow());
+
+function openRecipeFormModal(recipe = null) {
+    document.getElementById('recipe-modal-title').textContent = recipe ? 'Uredi recept' : 'Novi recept';
+    document.getElementById('recipe-form-btn-text').textContent = recipe ? 'Spremi izmjene' : 'Spremi recept';
+    document.getElementById('recipe-edit-id').value = recipe ? recipe.id : '';
+
+    if (recipe) {
+        document.getElementById('recipe-title').value = recipe.title || '';
+        document.getElementById('recipe-cat').value = recipe.category || 'Ostalo';
+        document.getElementById('recipe-diff').value = recipe.difficulty || 'Srednje';
+        document.getElementById('recipe-time').value = recipe.prep_time || '';
+        document.getElementById('recipe-servings').value = recipe.servings || '';
+        document.getElementById('recipe-tip-input').value = recipe.tip || '';
+
+        const ings = typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : recipe.ingredients;
+        const stps = typeof recipe.steps === 'string' ? JSON.parse(recipe.steps) : recipe.steps;
+
+        ingredientsRows.innerHTML = '';
+        (ings || []).forEach(ing => addIngredientRow(ing.amount || '', ing.name || ''));
+
+        stepsRows.innerHTML = '';
+        (stps || []).forEach(step => addStepRow(step));
+    } else {
+        recipeFormEl.reset();
+        ingredientsRows.innerHTML = '';
+        stepsRows.innerHTML = '';
+        addIngredientRow();
+        addIngredientRow();
+        addStepRow();
+        addStepRow();
+    }
+
+    recipeFormOverlay.classList.add('open');
+    setTimeout(() => document.getElementById('recipe-title').focus(), 200);
+}
+
+function closeRecipeFormModal() { recipeFormOverlay.classList.remove('open'); }
+
+recipeFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('recipe-edit-id').value;
+    const title = document.getElementById('recipe-title').value.trim();
+    const category = document.getElementById('recipe-cat').value;
+    const difficulty = document.getElementById('recipe-diff').value;
+    const prep_time = document.getElementById('recipe-time').value.trim();
+    const servings = document.getElementById('recipe-servings').value.trim();
+    const tip = document.getElementById('recipe-tip-input').value.trim();
+
+    const ingredients = [];
+    ingredientsRows.querySelectorAll('.dynamic-row').forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const amount = inputs[0].value.trim();
+        const name = inputs[1].value.trim();
+        if (name) ingredients.push({ amount, name });
+    });
+
+    const steps = [];
+    stepsRows.querySelectorAll('.dynamic-row').forEach(row => {
+        const val = row.querySelector('input').value.trim();
+        if (val) steps.push(val);
+    });
+
+    if (!title) { alert('Unesite naziv jela'); return; }
+    if (ingredients.length === 0) { alert('Dodajte barem jedan sastojak'); return; }
+    if (steps.length === 0) { alert('Dodajte barem jedan korak'); return; }
+
+    try {
+        const body = { title, category, difficulty, prep_time, servings, ingredients, steps, tip };
+        if (id) {
+            await api('PUT', `/cookbook/${id}`, body);
+        } else {
+            await api('POST', '/cookbook', body);
+        }
+        await loadData();
+        closeRecipeFormModal();
+        if (id && selectedRecipeId == id) openRecipeDetail(id);
+    } catch (err) { alert(err.message); }
 });
 
 // =====================
@@ -905,15 +1183,34 @@ const recipeResult = document.getElementById('recipe-result');
 btnGenerate.addEventListener('click', generateRecipe);
 btnAnother.addEventListener('click', generateRecipe);
 
+document.getElementById('btn-save-ai-recipe').addEventListener('click', async () => {
+    if (!lastAiRecipe) return;
+    try {
+        await api('POST', '/cookbook', {
+            title: lastAiRecipe.title,
+            category: 'Ostalo',
+            prep_time: lastAiRecipe.time,
+            difficulty: lastAiRecipe.difficulty,
+            servings: lastAiRecipe.servings,
+            ingredients: lastAiRecipe.ingredients.map(i => ({ name: i.name, amount: i.amount })),
+            steps: lastAiRecipe.steps,
+            tip: lastAiRecipe.tip || ''
+        });
+        await loadData();
+        alert('Recept spremljen u kuharicu!');
+    } catch (err) { alert(err.message); }
+});
+
 async function generateRecipe() {
     const preferences = recipePreferences.value.trim();
     recipeLoading.style.display = 'flex';
     recipeResult.style.display = 'none';
-    btnAnother.style.display = 'none';
+    document.getElementById('ai-recipe-actions').style.display = 'none';
     btnGenerate.disabled = true;
 
     try {
         const recipe = await api('POST', '/recipes/generate', { preferences });
+        lastAiRecipe = recipe;
         renderRecipe(recipe);
     } catch (err) {
         recipeResult.innerHTML = `<div class="recipe-error">${escapeHtml(err.message)}</div>`;
@@ -967,7 +1264,7 @@ function renderRecipe(recipe) {
         ${tip}
     `;
     recipeResult.style.display = 'block';
-    btnAnother.style.display = '';
+    document.getElementById('ai-recipe-actions').style.display = '';
 }
 
 // =====================

@@ -841,6 +841,85 @@ form { padding: 20px 24px 24px; }
     padding: 20px; text-align: center; color: var(--danger); font-size: 14px;
 }
 
+/* ===== Cookbook ===== */
+.cookbook-list { display: flex; flex-direction: column; gap: 10px; }
+
+.cookbook-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: all var(--transition);
+    animation: slideIn 300ms ease;
+}
+.cookbook-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.cookbook-card:active { transform: translateY(0); }
+
+.cookbook-card-title {
+    font-size: 16px; font-weight: 600;
+    color: var(--gray-800); margin-bottom: 6px;
+}
+
+.cookbook-card-meta {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    font-size: 12px; color: var(--gray-500); margin-bottom: 8px;
+}
+
+.cookbook-card-meta span {
+    display: flex; align-items: center; gap: 4px;
+}
+
+.cookbook-card-cat {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 10px;
+    background: var(--primary-bg); color: var(--primary);
+}
+
+.cookbook-card-preview {
+    font-size: 12px; color: var(--gray-400);
+    margin-top: 6px; line-height: 1.4;
+}
+
+.detail-actions {
+    display: flex; gap: 8px; margin-bottom: 12px;
+    justify-content: flex-end;
+}
+
+.detail-actions button { font-size: 13px; padding: 8px 14px; }
+
+.ing-status {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 8px; white-space: nowrap;
+}
+.ing-have { background: var(--success-bg); color: var(--success); }
+.ing-miss { background: var(--danger-bg); color: var(--danger); }
+
+.btn-add-row {
+    display: block; width: 100%;
+    padding: 8px; margin-top: 6px;
+    background: var(--gray-100); border: 1.5px dashed var(--border-color);
+    border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 13px; font-weight: 500; color: var(--gray-500);
+    cursor: pointer; transition: all var(--transition);
+}
+.btn-add-row:hover { border-color: var(--primary-light); color: var(--primary); background: var(--primary-bg); }
+
+.dynamic-row {
+    display: flex; gap: 8px; margin-bottom: 6px; align-items: center;
+}
+.dynamic-row input { flex: 1; }
+.dynamic-row .row-amount { max-width: 100px; }
+
+.btn-remove-row {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border: none; background: var(--danger-bg); color: var(--danger);
+    border-radius: 50%; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+}
+.btn-remove-row:hover { background: var(--danger); color: white; }
+
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
     .section-header { flex-direction: column; }

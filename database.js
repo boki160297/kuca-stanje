@@ -37,8 +37,24 @@ async function initDB() {
             created_at TIMESTAMP DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS cookbook (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            description TEXT,
+            category TEXT NOT NULL DEFAULT 'Ostalo',
+            prep_time TEXT,
+            difficulty TEXT,
+            servings TEXT,
+            ingredients JSONB NOT NULL,
+            steps JSONB NOT NULL,
+            tip TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
         CREATE INDEX IF NOT EXISTS idx_inventory_user ON inventory(user_id);
         CREATE INDEX IF NOT EXISTS idx_shopping_user ON shopping_list(user_id);
+        CREATE INDEX IF NOT EXISTS idx_cookbook_user ON cookbook(user_id);
     `);
 
     // Migration: add expires_at column if missing

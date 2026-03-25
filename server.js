@@ -461,6 +461,81 @@ Piši na bosanskom/hrvatskom jeziku.`;
     }
 });
 
+// =====================
+//   COOKBOOK ROUTES
+// =====================
+
+app.get('/api/cookbook', authRequired, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM cookbook WHERE user_id = $1 ORDER BY created_at DESC', [req.userId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.post('/api/cookbook', authRequired, async (req, res) => {
+    const { title, description, category, prep_time, difficulty, servings, ingredients, steps, tip } = req.body;
+    if (!title || !ingredients || !steps) {
+        return res.status(400).json({ error: 'Naziv, sastojci i koraci su obavezni' });
+    }
+    try {
+        const result = await pool.query(
+            `INSERT INTO cookbook (user_id, title, description, category, prep_time, difficulty, servings, ingredients, steps, tip)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+            [req.userId, title, description || '', category || 'Ostalo', prep_time || '', difficulty || '', servings || '', JSON.stringify(ingredients), JSON.stringify(steps), tip || '']
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.get('/api/cookbook/:id', authRequired, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM cookbook WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Recept nije pronađen' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.put('/api/cookbook/:id', authRequired, async (req, res) => {
+    const { title, description, category, prep_time, difficulty, servings, ingredients, steps, tip } = req.body;
+    try {
+        const check = await pool.query('SELECT * FROM cookbook WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Recept nije pronađen' });
+        const result = await pool.query(
+            `UPDATE cookbook SET title=$1, description=$2, category=$3, prep_time=$4, difficulty=$5, servings=$6, ingredients=$7, steps=$8, tip=$9 WHERE id=$10 RETURNING *`,
+            [title, description || '', category || 'Ostalo', prep_time || '', difficulty || '', servings || '', JSON.stringify(ingredients), JSON.stringify(steps), tip || '', req.params.id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.delete('/api/cookbook/:id', authRequired, async (req, res) => {
+    try {
+        const check = await pool.query('SELECT * FROM cookbook WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Recept nije pronađen' });
+        await pool.query('DELETE FROM cookbook WHERE id = $1', [req.params.id]);
+        res.json({ deleted: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
