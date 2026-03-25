@@ -420,7 +420,7 @@ Polje from_inventory je true ako namirnica postoji u inventaru, false ako je dod
 Piši na bosanskom/hrvatskom jeziku.`;
 
         const geminiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -435,8 +435,12 @@ Piši na bosanskom/hrvatskom jeziku.`;
         );
 
         if (!geminiRes.ok) {
-            const errData = await geminiRes.json();
+            const errData = await geminiRes.json().catch(() => ({}));
             console.error('Gemini error:', errData);
+            const code = errData?.error?.code;
+            if (code === 429) {
+                return res.status(429).json({ error: 'AI limit je dostignut. Pokušaj ponovo za par minuta.' });
+            }
             return res.status(500).json({ error: 'Greška pri generiranju recepta' });
         }
 
