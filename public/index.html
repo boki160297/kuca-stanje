@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kućne Zalihe</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+
+        <!-- AUTH SCREEN -->
+        <div id="auth-screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h1>Kućne Zalihe</h1>
+                    <p>Praćenje namirnica i lista za kupovinu</p>
+                </div>
+
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-auth="login">Prijava</button>
+                    <button class="auth-tab" data-auth="register">Registracija</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-username">Korisničko ime ili email</label>
+                        <input type="text" id="login-username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Lozinka</label>
+                        <input type="password" id="login-password" required autocomplete="current-password">
+                    </div>
+                    <div class="auth-error" id="login-error"></div>
+                    <button type="submit" class="btn-primary btn-full">Prijavi se</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form" style="display:none">
+                    <div class="form-group">
+                        <label for="reg-username">Korisničko ime</label>
+                        <input type="text" id="reg-username" required minlength="3" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Lozinka</label>
+                        <input type="password" id="reg-password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="auth-error" id="register-error"></div>
+                    <button type="submit" class="btn-primary btn-full">Registriraj se</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MAIN APP (hidden until login) -->
+        <div id="main-app" style="display:none">
+            <header class="app-header">
+                <div class="header-row">
+                    <div>
+                        <h1>Kućne Zalihe</h1>
+                        <p class="subtitle">Pozdrav, <span id="user-display"></span></p>
+                    </div>
+                    <button class="btn-logout" id="btn-logout">Odjava</button>
+                </div>
+            </header>
+
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="inventar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 7h-9"/><path d="M14 17H5"/>
+                        <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                    </svg>
+                    Inventar
+                    <span class="badge" id="inventar-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="kupovina">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                    </svg>
+                    Kupovina
+                    <span class="badge" id="kupovina-count">0</span>
+                </button>
+            </nav>
+
+            <!-- INVENTAR TAB -->
+            <section class="tab-content active" id="tab-inventar">
+                <div class="section-header">
+                    <div class="search-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input type="text" id="search-inventar" placeholder="Pretraži inventar..." autocomplete="off">
+                    </div>
+                    <button class="btn-primary" id="btn-add-inventar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14"/><path d="M5 12h14"/>
+                        </svg>
+                        Dodaj
+                    </button>
+                </div>
+
+                <div class="category-filters" id="category-filters"></div>
+
+                <div class="items-list" id="inventar-list">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 7h-9"/><path d="M14 17H5"/>
+                            <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                        </svg>
+                        <p>Inventar je prazan</p>
+                        <span>Dodajte prvu namirnicu klikom na "Dodaj"</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KUPOVINA TAB -->
+            <section class="tab-content" id="tab-kupovina">
+                <div class="section-header">
+                    <div class="search-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input type="text" id="search-kupovina" placeholder="Pretraži listu..." autocomplete="off">
+                    </div>
+                    <button class="btn-primary" id="btn-add-kupovina">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14"/><path d="M5 12h14"/>
+                        </svg>
+                        Dodaj
+                    </button>
+                </div>
+
+                <div class="shopping-actions" id="shopping-actions" style="display:none;">
+                    <button class="btn-success" id="btn-kupljeno-sve">Sve kupljeno → u inventar</button>
+                    <button class="btn-danger" id="btn-obrisi-kupljeno">Obriši označeno</button>
+                </div>
+
+                <div class="items-list" id="kupovina-list">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                        </svg>
+                        <p>Lista za kupovinu je prazna</p>
+                        <span>Dodajte namirnice koje trebate kupiti</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- MODAL: Dodaj / Uredi namirnicu -->
+        <div class="modal-overlay" id="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 id="modal-title">Dodaj namirnicu</h2>
+                    <button class="btn-close" id="btn-close-modal">&times;</button>
+                </div>
+                <form id="item-form">
+                    <div class="form-group">
+                        <label for="item-name">Naziv</label>
+                        <input type="text" id="item-name" placeholder="npr. Mlijeko" required autocomplete="off">
+                        <div class="suggestions" id="suggestions"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-qty">Količina</label>
+                            <input type="number" id="item-qty" placeholder="1" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-unit">Jedinica</label>
+                            <select id="item-unit">
+                                <option value="kom">kom (komad)</option>
+                                <option value="kg">kg</option>
+                                <option value="g">g (gram)</option>
+                                <option value="L">L (litar)</option>
+                                <option value="mL">mL</option>
+                                <option value="pak">pak (pakovanje)</option>
+                                <option value="vrećica">vrećica</option>
+                                <option value="boca">boca</option>
+                                <option value="kutija">kutija</option>
+                                <option value="šolja">šolja</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="item-category">Kategorija</label>
+                        <select id="item-category">
+                            <option value="Voće i povrće">Voće i povrće</option>
+                            <option value="Mlijeko i mliječni">Mlijeko i mliječni</option>
+                            <option value="Meso i riba">Meso i riba</option>
+                            <option value="Pekara">Pekara</option>
+                            <option value="Piće">Piće</option>
+                            <option value="Začini">Začini</option>
+                            <option value="Konzerve">Konzerve</option>
+                            <option value="Slatkiši">Slatkiši</option>
+                            <option value="Smrznuto">Smrznuto</option>
+                            <option value="Higijena">Higijena</option>
+                            <option value="Ostalo">Ostalo</option>
+                        </select>
+                    </div>
+                    <div class="inventory-notice" id="inventory-notice" style="display:none;"></div>
+                    <input type="hidden" id="item-id">
+                    <input type="hidden" id="item-target">
+                    <button type="submit" class="btn-primary btn-full">
+                        <span id="form-btn-text">Dodaj</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: Potroši -->
+        <div class="modal-overlay" id="modal-consume-overlay">
+            <div class="modal modal-small">
+                <div class="modal-header">
+                    <h2>Potrošeno</h2>
+                    <button class="btn-close" id="btn-close-consume">&times;</button>
+                </div>
+                <form id="consume-form">
+                    <p id="consume-info"></p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="consume-qty">Koliko ste potrošili?</label>
+                            <input type="number" id="consume-qty" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+                    <input type="hidden" id="consume-id">
+                    <div class="form-row">
+                        <button type="submit" class="btn-primary btn-full">Potroši</button>
+                        <button type="button" class="btn-danger btn-full" id="btn-remove-all">Ukloni sve</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
