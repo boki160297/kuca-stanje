@@ -559,7 +559,7 @@ function bindSearchResultActions() {
     });
     inventarSearchResults.querySelectorAll('.btn-icon.delete').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!confirm('Obrisati ovu namirnicu iz inventara?')) return;
+            if (!confirm('Obrisati ovu namirnicu iz smočnice?')) return;
             try {
                 await api('DELETE', `/inventory/${btn.dataset.id}`);
                 inventory = inventory.filter(i => i.id != btn.dataset.id);
@@ -616,7 +616,7 @@ function bindInventoryActions() {
     });
     inventarList.querySelectorAll('.btn-icon.delete').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!confirm('Obrisati ovu namirnicu iz inventara?')) return;
+            if (!confirm('Obrisati ovu namirnicu iz smočnice?')) return;
             try {
                 await api('DELETE', `/inventory/${btn.dataset.id}`);
                 inventory = inventory.filter(i => i.id != btn.dataset.id);
@@ -750,7 +750,7 @@ searchKupovina.addEventListener('input', renderShoppingList);
 //   MODAL: Add / Edit
 // =====================
 function openAddModal(target) {
-    modalTitle.textContent = target === 'inventar' ? 'Dodaj u inventar' : 'Dodaj na listu';
+    modalTitle.textContent = target === 'inventar' ? 'Dodaj u smočnicu' : 'Dodaj na listu';
     formBtnText.textContent = 'Dodaj';
     itemForm.reset();
     itemId.value = '';
@@ -872,7 +872,7 @@ itemName.addEventListener('blur', () => {
 function checkInventoryNotice(name) {
     const match = inventory.find(i => i.name.toLowerCase() === name.toLowerCase());
     if (match) {
-        inventoryNotice.textContent = `Već imate: ${formatQty(match.quantity)} ${match.unit} u inventaru`;
+        inventoryNotice.textContent = `Već imate: ${formatQty(match.quantity)} ${match.unit} u smočnici`;
         inventoryNotice.className = 'inventory-notice has-stock';
         inventoryNotice.style.display = 'block';
     } else {
@@ -1239,7 +1239,7 @@ async function generateRecipe() {
 function renderRecipe(recipe) {
     const ingredientsList = recipe.ingredients.map(ing => {
         const fromInv = ing.from_inventory
-            ? '<span class="ing-tag ing-have">iz inventara</span>'
+            ? '<span class="ing-tag ing-have">iz smočnice</span>'
             : '<span class="ing-tag ing-extra">dodatno</span>';
         return `<li>${escapeHtml(ing.amount)} ${escapeHtml(ing.name)} ${fromInv}</li>`;
     }).join('');

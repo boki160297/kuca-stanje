@@ -1,10 +1,12 @@
-const CACHE_NAME = 'smocnica-v2';
+const CACHE_NAME = 'smocnica-v4';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/style.css',
     '/app.js',
     '/icon.svg',
+    '/icon-192.png',
+    '/icon-512.png',
     '/manifest.json'
 ];
 

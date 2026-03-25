@@ -6,8 +6,12 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <g transform="translate(256, 200)" fill="white">
-    <path d="M0-80 L90 10 L90 80 L30 80 L30 30 L-30 30 L-30 80 L-90 80 L-90 10 Z" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <g transform="translate(256, 240)" fill="white">
+    <path d="M0-100 C-60-100 -100-60 -100 10 C-100 50 -70 90 0 120 C70 90 100 50 100 10 C100-60 60-100 0-100Z" opacity="0.2"/>
+    <path d="M-50-30 L-50 50 C-50 50 -50 70 -30 70 L30 70 C50 70 50 50 50 50 L50-30 C50-40 40-50 30-50 L-30-50 C-40-50 -50-40 -50-30Z" fill="none" stroke="white" stroke-width="10" stroke-linejoin="round"/>
+    <line x1="-25" y1="-10" x2="25" y2="-10" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    <line x1="-25" y1="15" x2="25" y2="15" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    <line x1="-25" y1="40" x2="10" y2="40" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    <path d="M-15-70 C-15-85 15-85 15-70 L15-50 L-15-50Z" fill="none" stroke="white" stroke-width="8" stroke-linejoin="round"/>
   </g>
-  <text x="256" y="390" text-anchor="middle" font-size="100" font-weight="700" fill="white" font-family="Arial,Helvetica,sans-serif">KZ</text>
 </svg>

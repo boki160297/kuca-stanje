@@ -1,7 +1,7 @@
 {
   "name": "kuca-stanje",
   "version": "1.0.0",
-  "description": "Aplikacija za praćenje kućnih zaliha",
+  "description": "Moja Smočnica - digitalna smočnica i kuharica",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
