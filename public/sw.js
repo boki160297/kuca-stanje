@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smocnica-v4';
+const CACHE_NAME = 'smocnica-v5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

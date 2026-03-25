@@ -52,9 +52,20 @@ async function initDB() {
             created_at TIMESTAMP DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS meal_plan (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            plan_date DATE NOT NULL,
+            meal_type TEXT NOT NULL,
+            recipe_id INTEGER REFERENCES cookbook(id) ON DELETE SET NULL,
+            custom_title TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
         CREATE INDEX IF NOT EXISTS idx_inventory_user ON inventory(user_id);
         CREATE INDEX IF NOT EXISTS idx_shopping_user ON shopping_list(user_id);
         CREATE INDEX IF NOT EXISTS idx_cookbook_user ON cookbook(user_id);
+        CREATE INDEX IF NOT EXISTS idx_meal_plan_user ON meal_plan(user_id, plan_date);
     `);
 
     // Migration: add expires_at column if missing

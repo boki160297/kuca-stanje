@@ -536,6 +536,62 @@ app.delete('/api/cookbook/:id', authRequired, async (req, res) => {
     }
 });
 
+// =====================
+//   MEAL PLAN ROUTES
+// =====================
+
+app.get('/api/meal-plan', authRequired, async (req, res) => {
+    const { start, end } = req.query;
+    if (!start || !end) return res.status(400).json({ error: 'start i end su obavezni' });
+    try {
+        const result = await pool.query(
+            `SELECT mp.*, c.title as recipe_title
+             FROM meal_plan mp LEFT JOIN cookbook c ON mp.recipe_id = c.id
+             WHERE mp.user_id = $1 AND mp.plan_date >= $2 AND mp.plan_date <= $3
+             ORDER BY mp.plan_date, CASE mp.meal_type WHEN 'dorucak' THEN 1 WHEN 'rucak' THEN 2 WHEN 'vecera' THEN 3 END`,
+            [req.userId, start, end]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.post('/api/meal-plan', authRequired, async (req, res) => {
+    const { plan_date, meal_type, recipe_id, custom_title } = req.body;
+    if (!plan_date || !meal_type) return res.status(400).json({ error: 'Datum i vrsta obroka su obavezni' });
+    if (!recipe_id && !custom_title) return res.status(400).json({ error: 'Odaberite recept ili unesite naziv' });
+    try {
+        const result = await pool.query(
+            'INSERT INTO meal_plan (user_id, plan_date, meal_type, recipe_id, custom_title) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [req.userId, plan_date, meal_type, recipe_id || null, custom_title || null]
+        );
+        if (recipe_id) {
+            const recipe = await pool.query('SELECT title FROM cookbook WHERE id = $1', [recipe_id]);
+            result.rows[0].recipe_title = recipe.rows[0]?.title || null;
+        }
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.delete('/api/meal-plan/:id', authRequired, async (req, res) => {
+    try {
+        const check = await pool.query(
+            'SELECT * FROM meal_plan WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]
+        );
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Obrok nije pronađen' });
+        await pool.query('DELETE FROM meal_plan WHERE id = $1', [req.params.id]);
+        res.json({ deleted: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

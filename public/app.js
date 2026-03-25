@@ -22,11 +22,29 @@ const CATEGORY_COLORS = {
 let inventory = [];
 let shoppingList = [];
 let cookbookRecipes = [];
+let mealPlan = [];
 let activePage = 'pocetna';
 let selectedCategory = null;
 let selectedRecipeId = null;
 let lastAiRecipe = null;
 let currentUser = null;
+
+function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    date.setDate(diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+let planerWeekStart = getMonday(new Date());
+
+const DAY_SHORT = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
+const MEAL_TYPES = [
+    { id: 'dorucak', label: 'Doručak', icon: '🌅' },
+    { id: 'rucak', label: 'Ručak', icon: '☀️' },
+    { id: 'vecera', label: 'Večera', icon: '🌙' }
+];
 
 // ---- API Helper ----
 function getToken() { return localStorage.getItem('kuca_token'); }
@@ -131,16 +149,39 @@ function formatDate(dateStr) {
 }
 
 function findInventoryMatch(ingredientName) {
-    const name = ingredientName.toLowerCase().trim();
-    const nameRoot = name.replace(/[aeiou]$/i, '').slice(0, -1);
+    const normalize = s => s.toLowerCase().trim();
+    const name = normalize(ingredientName);
+
+    function wordRoot(w) {
+        if (w.length <= 3) return w;
+        const suffixes = ['ama','ima','ica','ice','aci','aca','ene','enih','enom',
+            'om','em','im','og','oj','ih','ne','na','no','ni','ke','ka','ki','ce','ca','ci',
+            'a','e','i','u','o'];
+        for (const suf of suffixes) {
+            if (w.length > suf.length + 2 && w.endsWith(suf)) return w.slice(0, -suf.length);
+        }
+        return w;
+    }
+
+    function wordsMatch(w1, w2) {
+        if (w1 === w2) return true;
+        const r1 = wordRoot(w1), r2 = wordRoot(w2);
+        if (r1 === r2) return true;
+        if (r1.length >= 3 && r2.length >= 3 && (r1.startsWith(r2) || r2.startsWith(r1))) return true;
+        return false;
+    }
+
+    const nameWords = name.split(/\s+/).filter(w => w.length > 0);
+
     return inventory.find(i => {
-        const invName = i.name.toLowerCase();
-        const invRoot = invName.replace(/[aeiou]$/i, '').slice(0, -1);
+        const invName = normalize(i.name);
         if (invName === name) return true;
         if (invName.includes(name) || name.includes(invName)) return true;
-        if (nameRoot.length >= 3 && invRoot.length >= 3 &&
-            (invRoot.startsWith(nameRoot) || nameRoot.startsWith(invRoot))) return true;
-        return false;
+        const invWords = invName.split(/\s+/).filter(w => w.length > 0);
+        if (nameWords.length === 0 || invWords.length === 0) return false;
+        const matched = nameWords.filter(nw => invWords.some(iw => wordsMatch(nw, iw))).length;
+        const minWords = Math.min(nameWords.length, invWords.length);
+        return matched >= minWords && matched > 0;
     });
 }
 
@@ -245,11 +286,28 @@ async function loadData() {
     try {
         cookbookRecipes = await api('GET', '/cookbook');
     } catch (err) { cookbookRecipes = []; }
+    await loadMealPlan();
     renderAll();
+}
+
+function formatDateISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+async function loadMealPlan() {
+    const end = new Date(planerWeekStart);
+    end.setDate(end.getDate() + 6);
+    try {
+        mealPlan = await api('GET', `/meal-plan?start=${formatDateISO(planerWeekStart)}&end=${formatDateISO(end)}`);
+    } catch { mealPlan = []; }
 }
 
 function renderAll() {
     renderDashboard();
+    renderPlaner();
     renderCategoriesGrid();
     renderShoppingList();
     renderCookbookList();
@@ -344,10 +402,13 @@ function renderDashboard() {
 function renderExpiryWarnings() {
     const warnings = inventory
         .map(item => ({ ...item, expiry: getExpiryStatus(item.expires_at) }))
-        .filter(item => item.expiry && item.expiry.days <= 3)
+        .filter(item => item.expiry && item.expiry.days <= 7)
         .sort((a, b) => a.expiry.days - b.expiry.days);
 
     if (warnings.length === 0) { expiryWarnings.innerHTML = ''; return; }
+
+    const urgent = warnings.filter(w => w.expiry.days <= 3);
+    const soon = warnings.filter(w => w.expiry.days > 3);
 
     let html = '<div class="expiry-panel">';
     html += `<div class="expiry-panel-header">
@@ -358,26 +419,228 @@ function renderExpiryWarnings() {
         ${warnings.length} namirnica ističe uskoro
     </div>`;
 
-    warnings.forEach(item => {
-        const icon = CATEGORY_ICONS[item.category] || '📦';
-        html += `<div class="expiry-item ${item.expiry.class}">
-            <span>${icon} ${escapeHtml(item.name)}</span>
-            <span class="expiry-label">${item.expiry.label}</span>
+    function renderGroup(items) {
+        items.forEach(item => {
+            const icon = CATEGORY_ICONS[item.category] || '📦';
+            html += `<div class="expiry-item ${item.expiry.class}">
+                <span>${icon} ${escapeHtml(item.name)}</span>
+                <span class="expiry-label">${item.expiry.label}</span>
+            </div>`;
+        });
+    }
+
+    renderGroup(urgent);
+    if (soon.length > 0) {
+        html += `<div class="expiry-item" style="font-size:11px;font-weight:700;color:var(--gray-500);background:var(--gray-100);">
+            Za 4-7 dana (${soon.length})
         </div>`;
-    });
+        renderGroup(soon);
+    }
+
+    html += `<button class="expiry-action-btn" id="btn-expiry-cook">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        Iskoristi u receptu
+    </button>`;
 
     html += '</div>';
     expiryWarnings.innerHTML = html;
+
+    const btnCook = document.getElementById('btn-expiry-cook');
+    if (btnCook) {
+        btnCook.addEventListener('click', () => {
+            const items = urgent.length > 0 ? urgent : soon;
+            const expiringNames = items.slice(0, 5).map(w => w.name).join(', ');
+            recipePreferences.value = `Koristi ove namirnice jer uskoro ističu: ${expiringNames}`;
+            navigateTo('recepti');
+        });
+    }
 }
 
 document.getElementById('btn-quick-inventar').addEventListener('click', () => openAddModal('inventar'));
 document.getElementById('btn-quick-kupovina').addEventListener('click', () => openAddModal('kupovina'));
 
 // =====================
+//   MEAL PLANER
+// =====================
+function renderPlaner() {
+    const end = new Date(planerWeekStart);
+    end.setDate(end.getDate() + 6);
+    const weekLabel = `${planerWeekStart.getDate()}. - ${end.getDate()}. ${end.toLocaleDateString('hr-HR', { month: 'short' })}`;
+    document.getElementById('planer-week-label').textContent = weekLabel;
+
+    const grid = document.getElementById('planer-grid');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(planerWeekStart);
+        date.setDate(date.getDate() + i);
+        const dateStr = formatDateISO(date);
+        const isToday = date.getTime() === today.getTime();
+
+        html += `<div class="planer-day ${isToday ? 'planer-today' : ''}">
+            <div class="planer-day-header">
+                <span class="planer-day-name">${DAY_SHORT[i]}</span>
+                <span class="planer-day-date">${date.getDate()}.${date.getMonth() + 1}.</span>
+            </div>
+            <div class="planer-meals">`;
+
+        for (const meal of MEAL_TYPES) {
+            const planned = mealPlan.find(m => {
+                const mDate = m.plan_date.includes('T') ? m.plan_date.split('T')[0] : m.plan_date;
+                return mDate === dateStr && m.meal_type === meal.id;
+            });
+            if (planned) {
+                const title = planned.recipe_title || planned.custom_title || 'Obrok';
+                html += `<div class="planer-meal filled" title="${escapeHtml(title)}">
+                    <span class="meal-icon">${meal.icon}</span>
+                    <span class="meal-name">${escapeHtml(title)}</span>
+                    <button class="meal-remove" data-meal-id="${planned.id}">&times;</button>
+                </div>`;
+            } else {
+                html += `<div class="planer-meal empty" data-date="${dateStr}" data-type="${meal.id}">
+                    <span class="meal-icon">${meal.icon}</span>
+                    <span class="meal-add">+ ${meal.label}</span>
+                </div>`;
+            }
+        }
+
+        html += '</div></div>';
+    }
+
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.planer-meal.empty').forEach(el => {
+        el.addEventListener('click', () => openMealModal(el.dataset.date, el.dataset.type));
+    });
+
+    grid.querySelectorAll('.meal-remove').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                await api('DELETE', `/meal-plan/${btn.dataset.mealId}`);
+                mealPlan = mealPlan.filter(m => m.id != btn.dataset.mealId);
+                renderPlaner();
+            } catch (err) { alert(err.message); }
+        });
+    });
+}
+
+document.getElementById('planer-prev').addEventListener('click', async () => {
+    planerWeekStart.setDate(planerWeekStart.getDate() - 7);
+    await loadMealPlan();
+    renderPlaner();
+});
+
+document.getElementById('planer-next').addEventListener('click', async () => {
+    planerWeekStart.setDate(planerWeekStart.getDate() + 7);
+    await loadMealPlan();
+    renderPlaner();
+});
+
+// Meal Modal
+const mealFormOverlay = document.getElementById('modal-meal-overlay');
+const mealForm = document.getElementById('meal-form');
+const mealRecipeSelect = document.getElementById('meal-recipe-select');
+const mealCustomTitle = document.getElementById('meal-custom-title');
+
+function openMealModal(dateStr, mealType) {
+    const mealLabel = MEAL_TYPES.find(m => m.id === mealType)?.label || mealType;
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const dayName = dateObj.toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    document.getElementById('meal-modal-title').textContent = `Dodaj ${mealLabel.toLowerCase()}`;
+    document.getElementById('meal-modal-info').textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    document.getElementById('meal-date').value = dateStr;
+    document.getElementById('meal-type').value = mealType;
+
+    mealRecipeSelect.innerHTML = '<option value="">-- Bez recepta --</option>';
+    cookbookRecipes.forEach(r => {
+        mealRecipeSelect.innerHTML += `<option value="${r.id}">${escapeHtml(r.title)}</option>`;
+    });
+
+    mealCustomTitle.value = '';
+    mealFormOverlay.classList.add('open');
+}
+
+function closeMealModal() { mealFormOverlay.classList.remove('open'); }
+
+document.getElementById('btn-close-meal').addEventListener('click', closeMealModal);
+mealFormOverlay.addEventListener('click', (e) => { if (e.target === mealFormOverlay) closeMealModal(); });
+
+mealForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const plan_date = document.getElementById('meal-date').value;
+    const meal_type = document.getElementById('meal-type').value;
+    const recipe_id = mealRecipeSelect.value || null;
+    const custom_title = mealCustomTitle.value.trim() || null;
+
+    if (!recipe_id && !custom_title) {
+        alert('Odaberite recept ili unesite naziv obroka.');
+        return;
+    }
+
+    try {
+        const meal = await api('POST', '/meal-plan', { plan_date, meal_type, recipe_id, custom_title });
+        mealPlan.push(meal);
+        renderPlaner();
+        closeMealModal();
+    } catch (err) { alert(err.message); }
+});
+
+document.getElementById('btn-planer-shopping').addEventListener('click', async () => {
+    const recipeIds = mealPlan.filter(m => m.recipe_id).map(m => m.recipe_id);
+    if (recipeIds.length === 0) {
+        alert('Nema planiranih recepata za ovu sedmicu.');
+        return;
+    }
+
+    const uniqueIds = [...new Set(recipeIds)];
+    const allIngredients = [];
+
+    for (const id of uniqueIds) {
+        const recipe = cookbookRecipes.find(r => r.id == id);
+        if (!recipe) continue;
+        const ings = typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : recipe.ingredients;
+        for (const ing of (ings || [])) {
+            if (!allIngredients.find(a => a.name.toLowerCase() === ing.name.toLowerCase())) {
+                allIngredients.push(ing);
+            }
+        }
+    }
+
+    const missing = allIngredients.filter(ing => {
+        if (findInventoryMatch(ing.name)) return false;
+        if (shoppingList.find(s => s.name.toLowerCase() === ing.name.toLowerCase())) return false;
+        return true;
+    });
+
+    if (missing.length === 0) {
+        alert('Imate sve sastojke ili su već na listi!');
+        return;
+    }
+
+    if (!confirm(`Dodati ${missing.length} namirnica na listu za kupovinu?`)) return;
+
+    let added = 0;
+    for (const ing of missing) {
+        try {
+            await api('POST', '/shopping', { name: ing.name, quantity: 1, unit: 'kom', category: 'Ostalo' });
+            added++;
+        } catch (e) { console.error(e); }
+    }
+
+    await loadData();
+    alert(`${added} namirnica dodano na listu za kupovinu!`);
+});
+
+// =====================
 //   NAV BADGES
 // =====================
 function updateNavBadges() {
     const kuharicaCount = document.getElementById('kuharica-count');
+    const pocetnaExpiry = document.getElementById('pocetna-expiry-count');
     if (inventory.length > 0) {
         inventarCount.textContent = inventory.length;
         inventarCount.style.display = '';
@@ -390,6 +653,14 @@ function updateNavBadges() {
         kuharicaCount.textContent = cookbookRecipes.length;
         kuharicaCount.style.display = '';
     } else { kuharicaCount.style.display = 'none'; }
+    const expiringCount = inventory.filter(i => {
+        const s = getExpiryStatus(i.expires_at);
+        return s && s.days <= 3;
+    }).length;
+    if (expiringCount > 0) {
+        pocetnaExpiry.textContent = expiringCount;
+        pocetnaExpiry.style.display = '';
+    } else { pocetnaExpiry.style.display = 'none'; }
 }
 
 // =====================
@@ -923,7 +1194,7 @@ document.getElementById('btn-remove-all').addEventListener('click', async () => 
 
 // ---- Keyboard shortcuts ----
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); closeRecipeFormModal(); }
+    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); closeRecipeFormModal(); closeMealModal(); }
 });
 
 // =====================
