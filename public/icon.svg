@@ -6,10 +6,8 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <g transform="translate(256,240)" text-anchor="middle">
-    <text font-size="200" y="20" fill="white" font-family="Arial"><à</text>
+  <g transform="translate(256, 200)" fill="white">
+    <path d="M0-80 L90 10 L90 80 L30 80 L30 30 L-30 30 L-30 80 L-90 80 L-90 10 Z" stroke="white" stroke-width="4" stroke-linejoin="round"/>
   </g>
-  <g transform="translate(256,420)" text-anchor="middle">
-    <text font-size="72" font-weight="700" fill="white" font-family="Inter,Arial,sans-serif" letter-spacing="-2">KZ</text>
-  </g>
+  <text x="256" y="390" text-anchor="middle" font-size="100" font-weight="700" fill="white" font-family="Arial,Helvetica,sans-serif">KZ</text>
 </svg>
