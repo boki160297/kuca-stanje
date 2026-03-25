@@ -545,7 +545,7 @@ app.get('*', (req, res) => {
 initDB()
     .then(() => {
         app.listen(PORT, () => {
-            console.log(`Kućne Zalihe server pokrenut na http://localhost:${PORT}`);
+            console.log(`Moja Smočnica server pokrenut na http://localhost:${PORT}`);
         });
     })
     .catch(err => {

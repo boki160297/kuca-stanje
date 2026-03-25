@@ -132,9 +132,15 @@ function formatDate(dateStr) {
 
 function findInventoryMatch(ingredientName) {
     const name = ingredientName.toLowerCase().trim();
+    const nameRoot = name.replace(/[aeiou]$/i, '').slice(0, -1);
     return inventory.find(i => {
         const invName = i.name.toLowerCase();
-        return invName === name || invName.includes(name) || name.includes(invName);
+        const invRoot = invName.replace(/[aeiou]$/i, '').slice(0, -1);
+        if (invName === name) return true;
+        if (invName.includes(name) || name.includes(invName)) return true;
+        if (nameRoot.length >= 3 && invRoot.length >= 3 &&
+            (invRoot.startsWith(nameRoot) || nameRoot.startsWith(invRoot))) return true;
+        return false;
     });
 }
 
@@ -254,11 +260,11 @@ function renderAll() {
 //   NAVIGATION
 // =====================
 const PAGE_TITLES = {
-    pocetna: 'Kućne Zalihe',
+    pocetna: 'Moja Smočnica',
     inventar: 'Inventar',
     kupovina: 'Kupovina',
     kuharica: 'Kuharica',
-    recepti: 'AI Kuhar'
+    recepti: 'Čarobni Kuhar'
 };
 
 function navigateTo(page) {

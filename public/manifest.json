@@ -1,7 +1,7 @@
 {
-  "name": "Kućne Zalihe",
-  "short_name": "Zalihe",
-  "description": "Praćenje namirnica i lista za kupovinu",
+  "name": "Moja Smočnica",
+  "short_name": "Smočnica",
+  "description": "Tvoja digitalna smočnica i kuharica",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
