@@ -261,7 +261,7 @@ function renderAll() {
 // =====================
 const PAGE_TITLES = {
     pocetna: 'Moja Smočnica',
-    inventar: 'Inventar',
+    inventar: 'Smočnica',
     kupovina: 'Kupovina',
     kuharica: 'Kuharica',
     recepti: 'Čarobni Kuhar'
