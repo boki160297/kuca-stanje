@@ -362,6 +362,101 @@ app.delete('/api/shopping/checked', authRequired, async (req, res) => {
     }
 });
 
+// =====================
+//   RECIPE GENERATION
+// =====================
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+app.post('/api/recipes/generate', authRequired, async (req, res) => {
+    if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'AI nije konfiguriran' });
+    }
+
+    const { preferences } = req.body;
+
+    try {
+        const invResult = await pool.query(
+            'SELECT name, quantity, unit, category FROM inventory WHERE user_id = $1 ORDER BY category, name',
+            [req.userId]
+        );
+
+        if (invResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Inventar je prazan — dodajte namirnice prvo' });
+        }
+
+        const itemsList = invResult.rows
+            .map(i => `- ${i.name}: ${i.quantity} ${i.unit}`)
+            .join('\n');
+
+        let prefText = '';
+        if (preferences) prefText = `\nDodatni zahtjevi: ${preferences}`;
+
+        const prompt = `Ti si kuhar koji pomaže ljudima kuhati od namirnica koje imaju kod kuće.
+
+Korisnik ima ove namirnice:
+${itemsList}
+${prefText}
+
+Predloži jedan recept koji se može napraviti od dostupnih namirnica. Ako nedostaje neka sitnica (sol, papar, ulje), pretpostavi da to imaju.
+
+Odgovori ISKLJUČIVO u ovom JSON formatu (bez markdown oznaka):
+{
+  "title": "Naziv jela",
+  "time": "Vrijeme pripreme (npr. 30 min)",
+  "difficulty": "Lagano/Srednje/Teže",
+  "servings": "Za koliko osoba",
+  "ingredients": [
+    {"name": "Naziv namirnice", "amount": "Količina", "from_inventory": true}
+  ],
+  "steps": [
+    "Korak 1...",
+    "Korak 2..."
+  ],
+  "tip": "Savjet kuhara (opcionalno)"
+}
+
+Polje from_inventory je true ako namirnica postoji u inventaru, false ako je dodatna (sol, papar, ulje itd).
+Piši na bosanskom/hrvatskom jeziku.`;
+
+        const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.8,
+                        maxOutputTokens: 2048
+                    }
+                })
+            }
+        );
+
+        if (!geminiRes.ok) {
+            const errData = await geminiRes.json();
+            console.error('Gemini error:', errData);
+            return res.status(500).json({ error: 'Greška pri generiranju recepta' });
+        }
+
+        const geminiData = await geminiRes.json();
+        const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) {
+            return res.status(500).json({ error: 'AI nije vratio odgovor' });
+        }
+
+        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const recipe = JSON.parse(cleaned);
+
+        res.json(recipe);
+    } catch (err) {
+        console.error('Recipe generation error:', err);
+        res.status(500).json({ error: 'Greška pri generiranju recepta. Pokušajte ponovo.' });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -683,6 +683,82 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ---- Recipe Generation ----
+const btnGenerate = document.getElementById('btn-generate-recipe');
+const btnAnother = document.getElementById('btn-another-recipe');
+const recipePreferences = document.getElementById('recipe-preferences');
+const recipeLoading = document.getElementById('recipe-loading');
+const recipeResult = document.getElementById('recipe-result');
+
+btnGenerate.addEventListener('click', generateRecipe);
+btnAnother.addEventListener('click', generateRecipe);
+
+async function generateRecipe() {
+    const preferences = recipePreferences.value.trim();
+
+    recipeLoading.style.display = 'flex';
+    recipeResult.style.display = 'none';
+    btnAnother.style.display = 'none';
+    btnGenerate.disabled = true;
+
+    try {
+        const recipe = await api('POST', '/recipes/generate', { preferences });
+        renderRecipe(recipe);
+    } catch (err) {
+        recipeResult.innerHTML = `<div class="recipe-error">${escapeHtml(err.message)}</div>`;
+        recipeResult.style.display = 'block';
+    } finally {
+        recipeLoading.style.display = 'none';
+        btnGenerate.disabled = false;
+    }
+}
+
+function renderRecipe(recipe) {
+    const ingredientsList = recipe.ingredients.map(ing => {
+        const fromInv = ing.from_inventory
+            ? '<span class="ing-tag ing-have">iz inventara</span>'
+            : '<span class="ing-tag ing-extra">dodatno</span>';
+        return `<li>${escapeHtml(ing.amount)} ${escapeHtml(ing.name)} ${fromInv}</li>`;
+    }).join('');
+
+    const stepsList = recipe.steps.map((step, i) => {
+        return `<li><span class="step-num">${i + 1}</span><span>${escapeHtml(step)}</span></li>`;
+    }).join('');
+
+    const tip = recipe.tip ? `<div class="recipe-tip"><strong>Savjet:</strong> ${escapeHtml(recipe.tip)}</div>` : '';
+
+    recipeResult.innerHTML = `
+        <div class="recipe-header">
+            <h3>${escapeHtml(recipe.title)}</h3>
+            <div class="recipe-meta">
+                <span class="recipe-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${escapeHtml(recipe.time)}
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+                    ${escapeHtml(recipe.difficulty)}
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    ${escapeHtml(recipe.servings)}
+                </span>
+            </div>
+        </div>
+        <div class="recipe-section">
+            <h4>Sastojci</h4>
+            <ul class="recipe-ingredients">${ingredientsList}</ul>
+        </div>
+        <div class="recipe-section">
+            <h4>Priprema</h4>
+            <ol class="recipe-steps">${stepsList}</ol>
+        </div>
+        ${tip}
+    `;
+    recipeResult.style.display = 'block';
+    btnAnother.style.display = '';
+}
+
 // ---- Dark Mode Toggle ----
 const btnTheme = document.getElementById('btn-theme');
 const iconSun = document.getElementById('icon-sun');
