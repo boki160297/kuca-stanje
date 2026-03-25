@@ -21,14 +21,12 @@ const CATEGORY_COLORS = {
 // ---- State ----
 let inventory = [];
 let shoppingList = [];
-let activeTab = 'inventar';
-let activeCategory = null;
+let activePage = 'pocetna';
+let selectedCategory = null;
 let currentUser = null;
 
 // ---- API Helper ----
-function getToken() {
-    return localStorage.getItem('kuca_token');
-}
+function getToken() { return localStorage.getItem('kuca_token'); }
 
 async function api(method, path, body) {
     const opts = {
@@ -38,26 +36,43 @@ async function api(method, path, body) {
     const token = getToken();
     if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
-
     const res = await fetch(`/api${path}`, opts);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Greška na serveru');
     return data;
 }
 
-// ---- DOM refs ----
+// ---- DOM Refs ----
 const authScreen = document.getElementById('auth-screen');
 const mainApp = document.getElementById('main-app');
 const userDisplay = document.getElementById('user-display');
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabContents = document.querySelectorAll('.tab-content');
-const inventarList = document.getElementById('inventar-list');
-const kupovinaList = document.getElementById('kupovina-list');
+const topBarTitle = document.getElementById('top-bar-title');
+const btnBack = document.getElementById('btn-back');
+const contentEl = document.getElementById('content');
+
+const navItems = document.querySelectorAll('.nav-item');
+const pages = document.querySelectorAll('.page');
+
+const greetingDate = document.getElementById('greeting-date');
+const statInventar = document.getElementById('stat-inventar');
+const statKupovina = document.getElementById('stat-kupovina');
+const statExpiry = document.getElementById('stat-expiry');
+const expiryWarnings = document.getElementById('expiry-warnings');
+
 const inventarCount = document.getElementById('inventar-count');
 const kupovinaCount = document.getElementById('kupovina-count');
+
+const categoriesGrid = document.getElementById('categories-grid');
+const inventarCategoriesView = document.getElementById('inventar-categories-view');
+const inventarItemsView = document.getElementById('inventar-items-view');
+const categoryViewHeader = document.getElementById('category-view-header');
+const inventarList = document.getElementById('inventar-list');
+const inventarSearchResults = document.getElementById('inventar-search-results');
 const searchInventar = document.getElementById('search-inventar');
+const searchCategoryItems = document.getElementById('search-category-items');
+
+const kupovinaList = document.getElementById('kupovina-list');
 const searchKupovina = document.getElementById('search-kupovina');
-const categoryFilters = document.getElementById('category-filters');
 const shoppingActions = document.getElementById('shopping-actions');
 
 const modalOverlay = document.getElementById('modal-overlay');
@@ -74,7 +89,6 @@ const suggestionsEl = document.getElementById('suggestions');
 const inventoryNotice = document.getElementById('inventory-notice');
 const itemExpires = document.getElementById('item-expires');
 const expiryGroup = document.getElementById('expiry-group');
-const expiryWarnings = document.getElementById('expiry-warnings');
 
 const consumeOverlay = document.getElementById('modal-consume-overlay');
 const consumeForm = document.getElementById('consume-form');
@@ -100,7 +114,6 @@ function getExpiryStatus(expiresAt) {
     const expiry = new Date(expiresAt);
     expiry.setHours(0, 0, 0, 0);
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-
     if (diffDays < 0) return { label: `Isteklo prije ${Math.abs(diffDays)} dana`, class: 'expired', days: diffDays };
     if (diffDays === 0) return { label: 'Ističe danas!', class: 'expiring-today', days: 0 };
     if (diffDays <= 3) return { label: `Ističe za ${diffDays} dana`, class: 'expiring-soon', days: diffDays };
@@ -114,10 +127,15 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('hr-HR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function getGreetingDate() {
+    const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    const d = new Date().toLocaleDateString('hr-HR', opts);
+    return d.charAt(0).toUpperCase() + d.slice(1);
+}
+
 // =====================
 //   AUTH
 // =====================
-
 const authTabs = document.querySelectorAll('.auth-tab');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
@@ -145,15 +163,12 @@ loginForm.addEventListener('submit', async (e) => {
     loginError.textContent = '';
     const login = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-
     try {
         const data = await api('POST', '/auth/login', { login, password });
         localStorage.setItem('kuca_token', data.token);
         currentUser = data.user;
         showApp();
-    } catch (err) {
-        loginError.textContent = err.message;
-    }
+    } catch (err) { loginError.textContent = err.message; }
 });
 
 registerForm.addEventListener('submit', async (e) => {
@@ -162,15 +177,12 @@ registerForm.addEventListener('submit', async (e) => {
     const username = document.getElementById('reg-username').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
-
     try {
         const data = await api('POST', '/auth/register', { username, email, password });
         localStorage.setItem('kuca_token', data.token);
         currentUser = data.user;
         showApp();
-    } catch (err) {
-        registerError.textContent = err.message;
-    }
+    } catch (err) { registerError.textContent = err.message; }
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {
@@ -189,16 +201,19 @@ async function checkAuth() {
         const data = await api('GET', '/auth/me');
         currentUser = data.user;
         showApp();
-    } catch {
-        localStorage.removeItem('kuca_token');
-    }
+    } catch { localStorage.removeItem('kuca_token'); }
 }
 
 async function showApp() {
     authScreen.style.display = 'none';
     mainApp.style.display = '';
     userDisplay.textContent = currentUser.username;
+    greetingDate.textContent = getGreetingDate();
     await loadData();
+
+    if (!window.matchMedia('(display-mode: standalone)').matches && !localStorage.getItem('kuca_install_dismissed')) {
+        document.getElementById('install-banner').style.display = 'flex';
+    }
 }
 
 async function loadData() {
@@ -209,63 +224,89 @@ async function loadData() {
         ]);
         inventory = inv;
         shoppingList = shop;
-    } catch (err) {
-        console.error('Greška pri učitavanju:', err);
-    }
-    renderInventory();
-    renderShoppingList();
+    } catch (err) { console.error('Greška pri učitavanju:', err); }
+    renderAll();
 }
 
-// ---- Tabs ----
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        activeTab = btn.dataset.tab;
-        tabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        tabContents.forEach(c => c.classList.remove('active'));
-        document.getElementById(`tab-${activeTab}`).classList.add('active');
+function renderAll() {
+    renderDashboard();
+    renderCategoriesGrid();
+    renderShoppingList();
+    updateNavBadges();
+}
+
+// =====================
+//   NAVIGATION
+// =====================
+const PAGE_TITLES = {
+    pocetna: 'Kućne Zalihe',
+    inventar: 'Inventar',
+    kupovina: 'Kupovina',
+    recepti: 'AI Recepti'
+};
+
+function navigateTo(page) {
+    activePage = page;
+
+    pages.forEach(p => p.classList.remove('active'));
+    document.getElementById(`page-${page}`).classList.add('active');
+
+    navItems.forEach(n => n.classList.remove('active'));
+    document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+
+    if (page === 'inventar' && selectedCategory) {
+        topBarTitle.textContent = `${CATEGORY_ICONS[selectedCategory] || '📦'} ${selectedCategory}`;
+        btnBack.style.display = '';
+    } else {
+        topBarTitle.textContent = PAGE_TITLES[page] || page;
+        btnBack.style.display = 'none';
+    }
+
+    if (page === 'inventar') {
+        showCategoriesView();
+    }
+
+    contentEl.scrollTop = 0;
+}
+
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        selectedCategory = null;
+        navigateTo(item.dataset.page);
     });
 });
 
-// ---- Render Inventory ----
-function renderInventory() {
-    const search = searchInventar.value.toLowerCase().trim();
-    let items = inventory.slice();
-
-    if (search) {
-        items = items.filter(item => item.name.toLowerCase().includes(search));
+btnBack.addEventListener('click', () => {
+    if (activePage === 'inventar' && selectedCategory) {
+        selectedCategory = null;
+        showCategoriesView();
+        topBarTitle.textContent = PAGE_TITLES.inventar;
+        btnBack.style.display = 'none';
     }
-    if (activeCategory) {
-        items = items.filter(item => item.category === activeCategory);
-    }
+});
 
-    inventarCount.textContent = inventory.length;
-    renderExpiryWarnings();
-    renderCategoryFilters();
-
-    if (items.length === 0) {
-        const isFiltered = search || activeCategory;
-        inventarList.innerHTML = `
-            <div class="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 7h-9"/><path d="M14 17H5"/>
-                    <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
-                </svg>
-                <p>${isFiltered ? 'Nema rezultata' : 'Inventar je prazan'}</p>
-                <span>${isFiltered ? 'Pokušajte drugi pojam za pretragu' : 'Dodajte prvu namirnicu klikom na "Dodaj"'}</span>
-            </div>`;
-        return;
-    }
-
-    items.sort((a, b) => {
-        const c = a.category.localeCompare(b.category);
-        return c !== 0 ? c : a.name.localeCompare(b.name);
+document.querySelectorAll('.stat-card[data-goto]').forEach(card => {
+    card.addEventListener('click', () => {
+        selectedCategory = null;
+        navigateTo(card.dataset.goto);
     });
+});
 
-    let html = '';
-    items.forEach(item => { html += renderInventoryCard(item); });
-    inventarList.innerHTML = html;
-    bindInventoryActions();
+// =====================
+//   DASHBOARD
+// =====================
+function renderDashboard() {
+    statInventar.textContent = inventory.length;
+    statKupovina.textContent = shoppingList.length;
+
+    const expiringItems = inventory.filter(item => {
+        const s = getExpiryStatus(item.expires_at);
+        return s && s.days <= 3;
+    });
+    statExpiry.textContent = expiringItems.length;
+    document.getElementById('stat-card-expiry').style.display = expiringItems.length > 0 ? '' : 'none';
+
+    renderExpiryWarnings();
 }
 
 function renderExpiryWarnings() {
@@ -274,10 +315,7 @@ function renderExpiryWarnings() {
         .filter(item => item.expiry && item.expiry.days <= 3)
         .sort((a, b) => a.expiry.days - b.expiry.days);
 
-    if (warnings.length === 0) {
-        expiryWarnings.innerHTML = '';
-        return;
-    }
+    if (warnings.length === 0) { expiryWarnings.innerHTML = ''; return; }
 
     let html = '<div class="expiry-panel">';
     html += `<div class="expiry-panel-header">
@@ -285,7 +323,7 @@ function renderExpiryWarnings() {
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Upozorenje: ${warnings.length} namirnica ističe uskoro
+        ${warnings.length} namirnica ističe uskoro
     </div>`;
 
     warnings.forEach(item => {
@@ -300,6 +338,205 @@ function renderExpiryWarnings() {
     expiryWarnings.innerHTML = html;
 }
 
+document.getElementById('btn-quick-inventar').addEventListener('click', () => openAddModal('inventar'));
+document.getElementById('btn-quick-kupovina').addEventListener('click', () => openAddModal('kupovina'));
+
+// =====================
+//   NAV BADGES
+// =====================
+function updateNavBadges() {
+    if (inventory.length > 0) {
+        inventarCount.textContent = inventory.length;
+        inventarCount.style.display = '';
+    } else {
+        inventarCount.style.display = 'none';
+    }
+    if (shoppingList.length > 0) {
+        kupovinaCount.textContent = shoppingList.length;
+        kupovinaCount.style.display = '';
+    } else {
+        kupovinaCount.style.display = 'none';
+    }
+}
+
+// =====================
+//   INVENTAR - CATEGORIES
+// =====================
+function showCategoriesView() {
+    inventarCategoriesView.style.display = '';
+    inventarItemsView.style.display = 'none';
+    searchInventar.value = '';
+    inventarSearchResults.style.display = 'none';
+    inventarSearchResults.innerHTML = '';
+    categoriesGrid.style.display = '';
+    renderCategoriesGrid();
+}
+
+function showItemsView(category) {
+    selectedCategory = category;
+    inventarCategoriesView.style.display = 'none';
+    inventarItemsView.style.display = '';
+    searchCategoryItems.value = '';
+
+    topBarTitle.textContent = `${CATEGORY_ICONS[category] || '📦'} ${category}`;
+    btnBack.style.display = '';
+
+    const items = inventory.filter(i => i.category === category);
+    const icon = CATEGORY_ICONS[category] || '📦';
+    categoryViewHeader.innerHTML = `
+        <span class="category-view-icon">${icon}</span>
+        <div class="category-view-info">
+            <span class="category-view-name">${escapeHtml(category)}</span>
+            <span class="category-view-count">${items.length} namirnica</span>
+        </div>
+    `;
+
+    renderCategoryItems();
+}
+
+function renderCategoriesGrid() {
+    const categoryCounts = {};
+    inventory.forEach(item => {
+        categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+    });
+
+    const categories = Object.keys(categoryCounts).sort();
+
+    if (inventory.length === 0) {
+        categoriesGrid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 7h-9"/><path d="M14 17H5"/>
+                    <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                </svg>
+                <p>Inventar je prazan</p>
+                <span>Dodajte prvu namirnicu klikom na "Dodaj"</span>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+
+    if (categories.length > 1) {
+        html += `<div class="category-card category-card-all" data-cat="__all__">
+            <span class="category-card-icon">📋</span>
+            <span class="category-card-name">Sve namirnice</span>
+            <span class="category-card-count">${inventory.length}</span>
+        </div>`;
+    }
+
+    categories.forEach(cat => {
+        const icon = CATEGORY_ICONS[cat] || '📦';
+        html += `<div class="category-card" data-cat="${escapeHtml(cat)}">
+            <span class="category-card-icon">${icon}</span>
+            <span class="category-card-name">${escapeHtml(cat)}</span>
+            <span class="category-card-count">${categoryCounts[cat]}</span>
+        </div>`;
+    });
+
+    categoriesGrid.innerHTML = html;
+
+    categoriesGrid.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const cat = card.dataset.cat;
+            if (cat === '__all__') {
+                showItemsView('__all__');
+            } else {
+                showItemsView(cat);
+            }
+        });
+    });
+}
+
+// Handle "All" as a special case
+function renderCategoryItems() {
+    const search = searchCategoryItems.value.toLowerCase().trim();
+    let items;
+
+    if (selectedCategory === '__all__') {
+        items = inventory.slice();
+        topBarTitle.textContent = '📋 Sve namirnice';
+        categoryViewHeader.innerHTML = `
+            <span class="category-view-icon">📋</span>
+            <div class="category-view-info">
+                <span class="category-view-name">Sve namirnice</span>
+                <span class="category-view-count">${inventory.length} namirnica</span>
+            </div>
+        `;
+    } else {
+        items = inventory.filter(i => i.category === selectedCategory);
+    }
+
+    if (search) {
+        items = items.filter(i => i.name.toLowerCase().includes(search));
+    }
+
+    if (items.length === 0) {
+        inventarList.innerHTML = `
+            <div class="empty-state">
+                <p>${search ? 'Nema rezultata' : 'Nema namirnica'}</p>
+                <span>${search ? 'Pokušajte drugi pojam' : 'Dodajte namirnicu klikom na "Dodaj"'}</span>
+            </div>`;
+        return;
+    }
+
+    items.sort((a, b) => a.name.localeCompare(b.name));
+
+    let html = '';
+    items.forEach(item => { html += renderInventoryCard(item); });
+    inventarList.innerHTML = html;
+    bindInventoryActions();
+}
+
+// Global search on categories page
+searchInventar.addEventListener('input', () => {
+    const search = searchInventar.value.toLowerCase().trim();
+    if (search) {
+        categoriesGrid.style.display = 'none';
+        const items = inventory.filter(i => i.name.toLowerCase().includes(search));
+        if (items.length === 0) {
+            inventarSearchResults.innerHTML = `
+                <div class="empty-state">
+                    <p>Nema rezultata</p>
+                    <span>Pokušajte drugi pojam za pretragu</span>
+                </div>`;
+        } else {
+            items.sort((a, b) => a.name.localeCompare(b.name));
+            let html = '';
+            items.forEach(item => { html += renderInventoryCard(item); });
+            inventarSearchResults.innerHTML = html;
+            bindSearchResultActions();
+        }
+        inventarSearchResults.style.display = '';
+    } else {
+        categoriesGrid.style.display = '';
+        inventarSearchResults.style.display = 'none';
+        inventarSearchResults.innerHTML = '';
+    }
+});
+
+searchCategoryItems.addEventListener('input', renderCategoryItems);
+
+function bindSearchResultActions() {
+    inventarSearchResults.querySelectorAll('.btn-icon.consume').forEach(btn => {
+        btn.addEventListener('click', () => openConsumeModal(btn.dataset.id));
+    });
+    inventarSearchResults.querySelectorAll('.btn-icon.edit').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(btn.dataset.id, 'inventar'));
+    });
+    inventarSearchResults.querySelectorAll('.btn-icon.delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Obrisati ovu namirnicu iz inventara?')) return;
+            try {
+                await api('DELETE', `/inventory/${btn.dataset.id}`);
+                inventory = inventory.filter(i => i.id != btn.dataset.id);
+                renderAll();
+                searchInventar.dispatchEvent(new Event('input'));
+            } catch (err) { alert(err.message); }
+        });
+    });
+}
+
 function renderInventoryCard(item) {
     const icon = CATEGORY_ICONS[item.category] || '📦';
     const color = CATEGORY_COLORS[item.category] || '#f3f4f6';
@@ -308,7 +545,6 @@ function renderInventoryCard(item) {
     if (expiry) {
         expiryBadge = `<div class="expiry-badge ${expiry.class}">${expiry.label}</div>`;
     }
-
     return `
     <div class="item-card ${expiry && expiry.days < 0 ? 'card-expired' : ''}" data-id="${item.id}">
         <div class="item-icon" style="background:${color}">${icon}</div>
@@ -351,44 +587,21 @@ function bindInventoryActions() {
             try {
                 await api('DELETE', `/inventory/${btn.dataset.id}`);
                 inventory = inventory.filter(i => i.id != btn.dataset.id);
-                renderInventory();
+                renderAll();
+                if (selectedCategory) renderCategoryItems();
             } catch (err) { alert(err.message); }
         });
     });
 }
 
-// ---- Category Filters ----
-function renderCategoryFilters() {
-    const categories = [...new Set(inventory.map(i => i.category))].sort();
-    if (categories.length <= 1) {
-        categoryFilters.innerHTML = '';
-        return;
-    }
-    let html = `<button class="category-chip ${!activeCategory ? 'active' : ''}" data-cat="">Sve</button>`;
-    categories.forEach(cat => {
-        const icon = CATEGORY_ICONS[cat] || '📦';
-        html += `<button class="category-chip ${activeCategory === cat ? 'active' : ''}" data-cat="${cat}">${icon} ${cat}</button>`;
-    });
-    categoryFilters.innerHTML = html;
-
-    categoryFilters.querySelectorAll('.category-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            activeCategory = chip.dataset.cat || null;
-            renderInventory();
-        });
-    });
-}
-
-// ---- Render Shopping List ----
+// =====================
+//   SHOPPING LIST
+// =====================
 function renderShoppingList() {
     const search = searchKupovina.value.toLowerCase().trim();
     let items = shoppingList.slice();
+    if (search) items = items.filter(item => item.name.toLowerCase().includes(search));
 
-    if (search) {
-        items = items.filter(item => item.name.toLowerCase().includes(search));
-    }
-
-    kupovinaCount.textContent = shoppingList.length;
     shoppingActions.style.display = shoppingList.length > 0 ? 'flex' : 'none';
 
     if (items.length === 0) {
@@ -420,7 +633,6 @@ function renderShoppingCard(item) {
     if (inInventory) {
         hint = `<div class="inventory-hint">Imate: ${formatQty(inInventory.quantity)} ${inInventory.unit}</div>`;
     }
-
     return `
     <div class="item-card ${item.checked ? 'checked' : ''}" data-id="${item.id}">
         <div class="item-checkbox ${item.checked ? 'checked' : ''}" data-id="${item.id}"></div>
@@ -454,6 +666,7 @@ function bindShoppingActions() {
                 const idx = shoppingList.findIndex(i => i.id == cb.dataset.id);
                 if (idx !== -1) shoppingList[idx] = updated;
                 renderShoppingList();
+                updateNavBadges();
             } catch (err) { alert(err.message); }
         });
     });
@@ -465,13 +678,12 @@ function bindShoppingActions() {
             try {
                 await api('DELETE', `/shopping/${btn.dataset.id}`);
                 shoppingList = shoppingList.filter(i => i.id != btn.dataset.id);
-                renderShoppingList();
+                renderAll();
             } catch (err) { alert(err.message); }
         });
     });
 }
 
-// ---- Shopping Bulk Actions ----
 document.getElementById('btn-kupljeno-sve').addEventListener('click', async () => {
     const checkedItems = shoppingList.filter(i => i.checked);
     if (checkedItems.length === 0) {
@@ -495,11 +707,15 @@ document.getElementById('btn-obrisi-kupljeno').addEventListener('click', async (
     try {
         await api('DELETE', '/shopping/checked');
         shoppingList = shoppingList.filter(i => !i.checked);
-        renderShoppingList();
+        renderAll();
     } catch (err) { alert(err.message); }
 });
 
-// ---- Modal: Add / Edit ----
+searchKupovina.addEventListener('input', renderShoppingList);
+
+// =====================
+//   MODAL: Add / Edit
+// =====================
 function openAddModal(target) {
     modalTitle.textContent = target === 'inventar' ? 'Dodaj u inventar' : 'Dodaj na listu';
     formBtnText.textContent = 'Dodaj';
@@ -509,6 +725,11 @@ function openAddModal(target) {
     itemExpires.value = '';
     expiryGroup.style.display = target === 'inventar' ? '' : 'none';
     inventoryNotice.style.display = 'none';
+
+    if (target === 'inventar' && selectedCategory && selectedCategory !== '__all__') {
+        itemCategory.value = selectedCategory;
+    }
+
     modalOverlay.classList.add('open');
     setTimeout(() => itemName.focus(), 200);
 }
@@ -539,6 +760,7 @@ function closeModal() {
 }
 
 document.getElementById('btn-add-inventar').addEventListener('click', () => openAddModal('inventar'));
+document.getElementById('btn-add-category-item').addEventListener('click', () => openAddModal('inventar'));
 document.getElementById('btn-add-kupovina').addEventListener('click', () => openAddModal('kupovina'));
 document.getElementById('btn-close-modal').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -570,10 +792,9 @@ itemForm.addEventListener('submit', async (e) => {
             }
         }
         await loadData();
+        if (selectedCategory) renderCategoryItems();
         closeModal();
-    } catch (err) {
-        alert(err.message);
-    }
+    } catch (err) { alert(err.message); }
 });
 
 // ---- Suggestions ----
@@ -583,7 +804,6 @@ itemName.addEventListener('input', () => {
 
     if (target === 'kupovina' && val.length >= 1) {
         const matches = inventory.filter(i => i.name.toLowerCase().includes(val)).slice(0, 5);
-
         if (matches.length > 0) {
             suggestionsEl.innerHTML = matches.map(m => `
                 <div class="suggestion-item" data-name="${escapeHtml(m.name)}" data-unit="${m.unit}" data-category="${m.category}">
@@ -592,7 +812,6 @@ itemName.addEventListener('input', () => {
                 </div>
             `).join('');
             suggestionsEl.classList.add('open');
-
             suggestionsEl.querySelectorAll('.suggestion-item').forEach(si => {
                 si.addEventListener('click', () => {
                     itemName.value = si.dataset.name;
@@ -632,7 +851,6 @@ function checkInventoryNotice(name) {
 function openConsumeModal(id) {
     const item = inventory.find(i => i.id == id);
     if (!item) return;
-
     consumeInfo.innerHTML = `<strong>${escapeHtml(item.name)}</strong> — trenutno: ${formatQty(item.quantity)} ${item.unit}`;
     consumeQty.value = '';
     consumeQty.max = item.quantity;
@@ -642,9 +860,7 @@ function openConsumeModal(id) {
     setTimeout(() => consumeQty.focus(), 200);
 }
 
-function closeConsumeModal() {
-    consumeOverlay.classList.remove('open');
-}
+function closeConsumeModal() { consumeOverlay.classList.remove('open'); }
 
 document.getElementById('btn-close-consume').addEventListener('click', closeConsumeModal);
 consumeOverlay.addEventListener('click', (e) => { if (e.target === consumeOverlay) closeConsumeModal(); });
@@ -654,10 +870,10 @@ consumeForm.addEventListener('submit', async (e) => {
     const id = consumeId.value;
     const amount = parseFloat(consumeQty.value);
     if (!amount || amount <= 0) return;
-
     try {
         await api('PATCH', `/inventory/${id}/consume`, { amount });
         await loadData();
+        if (selectedCategory) renderCategoryItems();
         closeConsumeModal();
     } catch (err) { alert(err.message); }
 });
@@ -667,23 +883,19 @@ document.getElementById('btn-remove-all').addEventListener('click', async () => 
     try {
         await api('DELETE', `/inventory/${id}`);
         await loadData();
+        if (selectedCategory) renderCategoryItems();
         closeConsumeModal();
     } catch (err) { alert(err.message); }
 });
 
-// ---- Search ----
-searchInventar.addEventListener('input', renderInventory);
-searchKupovina.addEventListener('input', renderShoppingList);
-
 // ---- Keyboard shortcuts ----
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        closeModal();
-        closeConsumeModal();
-    }
+    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); }
 });
 
-// ---- Recipe Generation ----
+// =====================
+//   RECIPE GENERATION
+// =====================
 const btnGenerate = document.getElementById('btn-generate-recipe');
 const btnAnother = document.getElementById('btn-another-recipe');
 const recipePreferences = document.getElementById('recipe-preferences');
@@ -695,7 +907,6 @@ btnAnother.addEventListener('click', generateRecipe);
 
 async function generateRecipe() {
     const preferences = recipePreferences.value.trim();
-
     recipeLoading.style.display = 'flex';
     recipeResult.style.display = 'none';
     btnAnother.style.display = 'none';
@@ -759,7 +970,9 @@ function renderRecipe(recipe) {
     btnAnother.style.display = '';
 }
 
-// ---- Dark Mode Toggle ----
+// =====================
+//   DARK MODE
+// =====================
 const btnTheme = document.getElementById('btn-theme');
 const iconSun = document.getElementById('icon-sun');
 const iconMoon = document.getElementById('icon-moon');
@@ -784,7 +997,9 @@ btnTheme.addEventListener('click', () => {
 
 updateThemeIcons();
 
-// ---- PWA: Service Worker + Install ----
+// =====================
+//   PWA
+// =====================
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
@@ -797,24 +1012,28 @@ const btnDismiss = document.getElementById('btn-install-dismiss');
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    showInstallBanner();
+    if (!localStorage.getItem('kuca_install_dismissed')) {
+        installBanner.style.display = 'flex';
+    }
 });
-
-function showInstallBanner() {
-    if (localStorage.getItem('kuca_install_dismissed')) return;
-    installBanner.style.display = 'flex';
-}
 
 btnInstall.addEventListener('click', async () => {
     if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            installBanner.style.display = 'none';
-        }
+        if (outcome === 'accepted') installBanner.style.display = 'none';
         deferredPrompt = null;
     } else {
-        showManualInstallInstructions();
+        const ua = navigator.userAgent;
+        let msg = '';
+        if (/iPhone|iPad|iPod/.test(ua)) {
+            msg = 'U Safariju: klikni Share dugme (kvadrat sa strelicom) → "Dodaj na početni zaslon"';
+        } else if (/Android/.test(ua)) {
+            msg = 'U Chromeu: klikni ⋮ (tri tačke gore desno) → "Dodaj na početni ekran" ili "Instaliraj aplikaciju"';
+        } else {
+            msg = 'U browseru: klikni na ikonu instalacije u address baru ili u meniju browsera potražite "Instaliraj"';
+        }
+        alert('Kako instalirati:\n\n' + msg);
     }
 });
 
@@ -827,28 +1046,6 @@ window.addEventListener('appinstalled', () => {
     installBanner.style.display = 'none';
     deferredPrompt = null;
 });
-
-function showManualInstallInstructions() {
-    const ua = navigator.userAgent;
-    let msg = '';
-    if (/iPhone|iPad|iPod/.test(ua)) {
-        msg = 'U Safariju: klikni Share dugme (kvadrat sa strelicom) → "Dodaj na početni zaslon"';
-    } else if (/Android/.test(ua)) {
-        msg = 'U Chromeu: klikni ⋮ (tri tačke gore desno) → "Dodaj na početni ekran" ili "Instaliraj aplikaciju"';
-    } else {
-        msg = 'U browseru: klikni na ikonu instalacije u address baru ili u meniju browsera potražite "Instaliraj"';
-    }
-    alert('Kako instalirati:\n\n' + msg);
-}
-
-// Show install banner after login if not installed and not dismissed
-const originalShowApp = showApp;
-showApp = async function() {
-    await originalShowApp();
-    if (!window.matchMedia('(display-mode: standalone)').matches && !localStorage.getItem('kuca_install_dismissed')) {
-        installBanner.style.display = 'flex';
-    }
-};
 
 // ---- Init ----
 checkAuth();

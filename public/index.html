@@ -7,7 +7,7 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#16a34a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zalihe">
@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app">
+    <div class="app-root">
 
         <!-- AUTH SCREEN -->
         <div id="auth-screen">
@@ -35,7 +35,6 @@
                     <button class="auth-tab" data-auth="register">Registracija</button>
                 </div>
 
-                <!-- Login Form -->
                 <form id="login-form" class="auth-form">
                     <div class="form-group">
                         <label for="login-username">Korisničko ime ili email</label>
@@ -49,7 +48,6 @@
                     <button type="submit" class="btn-primary btn-full">Prijavi se</button>
                 </form>
 
-                <!-- Register Form -->
                 <form id="register-form" class="auth-form" style="display:none">
                     <div class="form-group">
                         <label for="reg-username">Korisničko ime</label>
@@ -69,14 +67,20 @@
             </div>
         </div>
 
-        <!-- MAIN APP (hidden until login) -->
-        <div id="main-app" style="display:none">
-            <header class="app-header">
-                <div class="header-row">
-                    <div>
-                        <h1>Kućne Zalihe</h1>
-                        <p class="subtitle">Pozdrav, <span id="user-display"></span></p>
-                    </div>
+        <!-- MAIN APP -->
+        <div id="main-app" class="app-shell" style="display:none">
+
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="btn-back" id="btn-back" style="display:none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                    </button>
+                    <h1 id="top-bar-title">Početna</h1>
+                </div>
+                <div class="top-bar-right">
                     <button class="btn-theme" id="btn-theme" title="Tamni/svijetli mod">
                         <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
@@ -85,7 +89,11 @@
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                         </svg>
                     </button>
-                    <button class="btn-logout" id="btn-logout">Odjava</button>
+                    <button class="btn-logout" id="btn-logout">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
                 </div>
             </header>
 
@@ -95,7 +103,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                    <span>Instaliraj aplikaciju na uređaj</span>
+                    <span>Instaliraj aplikaciju</span>
                 </div>
                 <div class="install-banner-actions">
                     <button class="btn-install" id="btn-install">Instaliraj</button>
@@ -103,140 +111,226 @@
                 </div>
             </div>
 
-            <nav class="tab-nav">
-                <button class="tab-btn active" data-tab="inventar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Content Area -->
+            <main class="content" id="content">
+
+                <!-- ===== POČETNA ===== -->
+                <section class="page active" id="page-pocetna">
+                    <div class="greeting-card">
+                        <div>
+                            <h2>Pozdrav, <span id="user-display"></span> 👋</h2>
+                            <p class="greeting-sub" id="greeting-date"></p>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" data-goto="inventar">
+                            <div class="stat-icon stat-blue">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 7h-9"/><path d="M14 17H5"/>
+                                    <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-inventar">0</span>
+                                <span class="stat-label">Namirnica</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-goto="kupovina">
+                            <div class="stat-icon stat-green">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                                    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-kupovina">0</span>
+                                <span class="stat-label">Za kupiti</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-wide" id="stat-card-expiry">
+                            <div class="stat-icon stat-orange">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-expiry">0</span>
+                                <span class="stat-label">Ističe uskoro</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="expiry-warnings" id="expiry-warnings"></div>
+
+                    <div class="quick-actions">
+                        <button class="btn-quick" id="btn-quick-inventar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14"/><path d="M5 12h14"/>
+                            </svg>
+                            Dodaj u inventar
+                        </button>
+                        <button class="btn-quick btn-quick-alt" id="btn-quick-kupovina">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14"/><path d="M5 12h14"/>
+                            </svg>
+                            Dodaj na listu
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===== INVENTAR ===== -->
+                <section class="page" id="page-inventar">
+                    <!-- Categories View -->
+                    <div id="inventar-categories-view">
+                        <div class="section-header">
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                                </svg>
+                                <input type="text" id="search-inventar" placeholder="Pretraži inventar..." autocomplete="off">
+                            </div>
+                            <button class="btn-primary" id="btn-add-inventar">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 5v14"/><path d="M5 12h14"/>
+                                </svg>
+                                Dodaj
+                            </button>
+                        </div>
+                        <div class="categories-grid" id="categories-grid"></div>
+                        <div class="items-list" id="inventar-search-results"></div>
+                    </div>
+                    <!-- Items in Category View -->
+                    <div id="inventar-items-view" style="display:none">
+                        <div class="category-view-header" id="category-view-header"></div>
+                        <div class="section-header">
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                                </svg>
+                                <input type="text" id="search-category-items" placeholder="Pretraži..." autocomplete="off">
+                            </div>
+                            <button class="btn-primary" id="btn-add-category-item">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 5v14"/><path d="M5 12h14"/>
+                                </svg>
+                                Dodaj
+                            </button>
+                        </div>
+                        <div class="items-list" id="inventar-list"></div>
+                    </div>
+                </section>
+
+                <!-- ===== KUPOVINA ===== -->
+                <section class="page" id="page-kupovina">
+                    <div class="section-header">
+                        <div class="search-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                            </svg>
+                            <input type="text" id="search-kupovina" placeholder="Pretraži listu..." autocomplete="off">
+                        </div>
+                        <button class="btn-primary" id="btn-add-kupovina">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14"/><path d="M5 12h14"/>
+                            </svg>
+                            Dodaj
+                        </button>
+                    </div>
+
+                    <div class="shopping-actions" id="shopping-actions" style="display:none;">
+                        <button class="btn-success" id="btn-kupljeno-sve">Kupljeno → inventar</button>
+                        <button class="btn-danger" id="btn-obrisi-kupljeno">Obriši označeno</button>
+                    </div>
+
+                    <div class="items-list" id="kupovina-list">
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                            </svg>
+                            <p>Lista za kupovinu je prazna</p>
+                            <span>Dodajte namirnice koje trebate kupiti</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== RECEPTI ===== -->
+                <section class="page" id="page-recepti">
+                    <div class="recipe-intro">
+                        <div class="recipe-intro-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 11h.01"/><path d="M11 15h.01"/><path d="M16 16h.01"/>
+                                <path d="m2 16 20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"/>
+                            </svg>
+                        </div>
+                        <h3>AI Kuhar</h3>
+                        <p>Predloži recept od namirnica koje imate u inventaru</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-preferences">Dodatni zahtjevi (opcionalno)</label>
+                        <input type="text" id="recipe-preferences" placeholder="npr. brzo, vegetarijansko, za djecu..." autocomplete="off">
+                    </div>
+
+                    <button class="btn-primary btn-full btn-generate" id="btn-generate-recipe">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                        </svg>
+                        Generiraj recept
+                    </button>
+
+                    <div id="recipe-loading" style="display:none" class="recipe-loading">
+                        <div class="spinner"></div>
+                        <p>AI kuhar razmišlja...</p>
+                    </div>
+
+                    <div id="recipe-result" style="display:none" class="recipe-card"></div>
+
+                    <button class="btn-primary btn-full btn-generate" id="btn-another-recipe" style="display:none; margin-top: 12px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                            <path d="M16 16h5v5"/>
+                        </svg>
+                        Generiraj drugi recept
+                    </button>
+                </section>
+            </main>
+
+            <!-- Bottom Navigation -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" data-page="pocetna">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Početna</span>
+                </button>
+                <button class="nav-item" data-page="inventar">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 7h-9"/><path d="M14 17H5"/>
                         <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
                     </svg>
-                    Inventar
-                    <span class="badge" id="inventar-count">0</span>
+                    <span>Inventar</span>
+                    <span class="nav-badge" id="inventar-count" style="display:none">0</span>
                 </button>
-                <button class="tab-btn" data-tab="kupovina">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button class="nav-item" data-page="kupovina">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                         <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                     </svg>
-                    Kupovina
-                    <span class="badge" id="kupovina-count">0</span>
+                    <span>Kupovina</span>
+                    <span class="nav-badge" id="kupovina-count" style="display:none">0</span>
                 </button>
-                <button class="tab-btn" data-tab="recepti">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button class="nav-item" data-page="recepti">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M15 11h.01"/><path d="M11 15h.01"/><path d="M16 16h.01"/>
                         <path d="m2 16 20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"/>
                     </svg>
-                    Recepti
+                    <span>Recepti</span>
                 </button>
             </nav>
-
-            <!-- INVENTAR TAB -->
-            <section class="tab-content active" id="tab-inventar">
-                <div class="section-header">
-                    <div class="search-box">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-                        </svg>
-                        <input type="text" id="search-inventar" placeholder="Pretraži inventar..." autocomplete="off">
-                    </div>
-                    <button class="btn-primary" id="btn-add-inventar">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 5v14"/><path d="M5 12h14"/>
-                        </svg>
-                        Dodaj
-                    </button>
-                </div>
-
-                <div class="expiry-warnings" id="expiry-warnings"></div>
-
-                <div class="category-filters" id="category-filters"></div>
-
-                <div class="items-list" id="inventar-list">
-                    <div class="empty-state">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 7h-9"/><path d="M14 17H5"/>
-                            <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
-                        </svg>
-                        <p>Inventar je prazan</p>
-                        <span>Dodajte prvu namirnicu klikom na "Dodaj"</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- KUPOVINA TAB -->
-            <section class="tab-content" id="tab-kupovina">
-                <div class="section-header">
-                    <div class="search-box">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-                        </svg>
-                        <input type="text" id="search-kupovina" placeholder="Pretraži listu..." autocomplete="off">
-                    </div>
-                    <button class="btn-primary" id="btn-add-kupovina">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 5v14"/><path d="M5 12h14"/>
-                        </svg>
-                        Dodaj
-                    </button>
-                </div>
-
-                <div class="shopping-actions" id="shopping-actions" style="display:none;">
-                    <button class="btn-success" id="btn-kupljeno-sve">Sve kupljeno → u inventar</button>
-                    <button class="btn-danger" id="btn-obrisi-kupljeno">Obriši označeno</button>
-                </div>
-
-                <div class="items-list" id="kupovina-list">
-                    <div class="empty-state">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-                            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-                        </svg>
-                        <p>Lista za kupovinu je prazna</p>
-                        <span>Dodajte namirnice koje trebate kupiti</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- RECEPTI TAB -->
-            <section class="tab-content" id="tab-recepti">
-                <div class="recipe-intro">
-                    <div class="recipe-intro-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M15 11h.01"/><path d="M11 15h.01"/><path d="M16 16h.01"/>
-                            <path d="m2 16 20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"/>
-                        </svg>
-                    </div>
-                    <h3>AI Kuhar</h3>
-                    <p>Predloži recept od namirnica koje imate u inventaru</p>
-                </div>
-
-                <div class="form-group">
-                    <label for="recipe-preferences">Dodatni zahtjevi (opcionalno)</label>
-                    <input type="text" id="recipe-preferences" placeholder="npr. brzo, vegetarijansko, za djecu..." autocomplete="off">
-                </div>
-
-                <button class="btn-primary btn-full btn-generate" id="btn-generate-recipe">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                    </svg>
-                    Generiraj recept
-                </button>
-
-                <div id="recipe-loading" style="display:none" class="recipe-loading">
-                    <div class="spinner"></div>
-                    <p>AI kuhar razmišlja...</p>
-                </div>
-
-                <div id="recipe-result" style="display:none" class="recipe-card"></div>
-
-                <button class="btn-primary btn-full btn-generate" id="btn-another-recipe" style="display:none; margin-top: 12px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                        <path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                        <path d="M16 16h5v5"/>
-                    </svg>
-                    Generiraj drugi recept
-                </button>
-            </section>
         </div>
 
         <!-- MODAL: Dodaj / Uredi namirnicu -->

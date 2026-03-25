@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuca-zalihe-v4';
+const CACHE_NAME = 'kuca-zalihe-v6';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
