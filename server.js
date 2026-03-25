@@ -290,21 +290,6 @@ app.patch('/api/shopping/:id/toggle', authRequired, async (req, res) => {
     }
 });
 
-app.delete('/api/shopping/:id', authRequired, async (req, res) => {
-    try {
-        const check = await pool.query(
-            'SELECT * FROM shopping_list WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]
-        );
-        if (check.rows.length === 0) return res.status(404).json({ error: 'Stavka nije pronađena' });
-
-        await pool.query('DELETE FROM shopping_list WHERE id = $1', [req.params.id]);
-        res.json({ deleted: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Greška na serveru' });
-    }
-});
-
 app.post('/api/shopping/buy-checked', authRequired, async (req, res) => {
     const client = await pool.connect();
     try {
@@ -356,6 +341,21 @@ app.delete('/api/shopping/checked', authRequired, async (req, res) => {
             'DELETE FROM shopping_list WHERE user_id = $1 AND checked = TRUE', [req.userId]
         );
         res.json({ deleted: result.rowCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
+app.delete('/api/shopping/:id', authRequired, async (req, res) => {
+    try {
+        const check = await pool.query(
+            'SELECT * FROM shopping_list WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]
+        );
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Stavka nije pronađena' });
+
+        await pool.query('DELETE FROM shopping_list WHERE id = $1', [req.params.id]);
+        res.json({ deleted: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Greška na serveru' });

@@ -130,6 +130,14 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('hr-HR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function findInventoryMatch(ingredientName) {
+    const name = ingredientName.toLowerCase().trim();
+    return inventory.find(i => {
+        const invName = i.name.toLowerCase();
+        return invName === name || invName.includes(name) || name.includes(invName);
+    });
+}
+
 function getGreetingDate() {
     const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
     const d = new Date().toLocaleDateString('hr-HR', opts);
@@ -980,7 +988,7 @@ function openRecipeDetail(id) {
     const steps = typeof r.steps === 'string' ? JSON.parse(r.steps) : r.steps;
 
     const ingredientsList = ingredients.map(ing => {
-        const invMatch = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+        const invMatch = findInventoryMatch(ing.name);
         let status;
         if (invMatch) {
             status = `<span class="ing-status ing-have">✓ Imate: ${formatQty(invMatch.quantity)} ${invMatch.unit}</span>`;
@@ -1016,7 +1024,7 @@ function openRecipeDetail(id) {
         ${tip}
     `;
 
-    const missingCount = ingredients.filter(ing => !inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase())).length;
+    const missingCount = ingredients.filter(ing => !findInventoryMatch(ing.name)).length;
     document.getElementById('btn-add-missing').style.display = missingCount > 0 ? '' : 'none';
 
     contentEl.scrollTop = 0;
@@ -1026,7 +1034,7 @@ document.getElementById('btn-add-missing').addEventListener('click', async () =>
     const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
     if (!r) return;
     const ingredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
-    const missing = ingredients.filter(ing => !inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase()));
+    const missing = ingredients.filter(ing => !findInventoryMatch(ing.name));
     if (missing.length === 0) { alert('Imate sve sastojke!'); return; }
 
     let added = 0;
