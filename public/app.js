@@ -1,3 +1,11 @@
+// ---- Dark Mode (apply immediately) ----
+(function() {
+    const saved = localStorage.getItem('kuca_theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+})();
+
 const CATEGORY_ICONS = {
     'Voće i povrće': '🥬', 'Mlijeko i mliječni': '🥛', 'Meso i riba': '🥩',
     'Pekara': '🍞', 'Piće': '🥤', 'Začini': '🧂', 'Konzerve': '🥫',
@@ -674,6 +682,31 @@ document.addEventListener('keydown', (e) => {
         closeConsumeModal();
     }
 });
+
+// ---- Dark Mode Toggle ----
+const btnTheme = document.getElementById('btn-theme');
+const iconSun = document.getElementById('icon-sun');
+const iconMoon = document.getElementById('icon-moon');
+
+function updateThemeIcons() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    iconSun.style.display = isDark ? 'none' : '';
+    iconMoon.style.display = isDark ? '' : 'none';
+}
+
+btnTheme.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('kuca_theme', 'light');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('kuca_theme', 'dark');
+    }
+    updateThemeIcons();
+});
+
+updateThemeIcons();
 
 // ---- PWA: Service Worker + Install ----
 if ('serviceWorker' in navigator) {
