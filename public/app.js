@@ -675,10 +675,71 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ---- PWA: Service Worker ----
+// ---- PWA: Service Worker + Install ----
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+let deferredPrompt = null;
+const installBanner = document.getElementById('install-banner');
+const btnInstall = document.getElementById('btn-install');
+const btnDismiss = document.getElementById('btn-install-dismiss');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallBanner();
+});
+
+function showInstallBanner() {
+    if (localStorage.getItem('kuca_install_dismissed')) return;
+    installBanner.style.display = 'flex';
+}
+
+btnInstall.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            installBanner.style.display = 'none';
+        }
+        deferredPrompt = null;
+    } else {
+        showManualInstallInstructions();
+    }
+});
+
+btnDismiss.addEventListener('click', () => {
+    installBanner.style.display = 'none';
+    localStorage.setItem('kuca_install_dismissed', 'true');
+});
+
+window.addEventListener('appinstalled', () => {
+    installBanner.style.display = 'none';
+    deferredPrompt = null;
+});
+
+function showManualInstallInstructions() {
+    const ua = navigator.userAgent;
+    let msg = '';
+    if (/iPhone|iPad|iPod/.test(ua)) {
+        msg = 'U Safariju: klikni Share dugme (kvadrat sa strelicom) → "Dodaj na početni zaslon"';
+    } else if (/Android/.test(ua)) {
+        msg = 'U Chromeu: klikni ⋮ (tri tačke gore desno) → "Dodaj na početni ekran" ili "Instaliraj aplikaciju"';
+    } else {
+        msg = 'U browseru: klikni na ikonu instalacije u address baru ili u meniju browsera potražite "Instaliraj"';
+    }
+    alert('Kako instalirati:\n\n' + msg);
+}
+
+// Show install banner after login if not installed and not dismissed
+const originalShowApp = showApp;
+showApp = async function() {
+    await originalShowApp();
+    if (!window.matchMedia('(display-mode: standalone)').matches && !localStorage.getItem('kuca_install_dismissed')) {
+        installBanner.style.display = 'flex';
+    }
+};
 
 // ---- Init ----
 checkAuth();
