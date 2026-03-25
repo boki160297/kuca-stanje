@@ -107,6 +107,8 @@
                     </button>
                 </div>
 
+                <div class="expiry-warnings" id="expiry-warnings"></div>
+
                 <div class="category-filters" id="category-filters"></div>
 
                 <div class="items-list" id="inventar-list">
@@ -205,6 +207,10 @@
                             <option value="Higijena">Higijena</option>
                             <option value="Ostalo">Ostalo</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="expiry-group">
+                        <label for="item-expires">Rok trajanja (opcionalno)</label>
+                        <input type="date" id="item-expires">
                     </div>
                     <div class="inventory-notice" id="inventory-notice" style="display:none;"></div>
                     <input type="hidden" id="item-id">

@@ -794,6 +794,96 @@ form {
     }
 }
 
+/* Expiry Warning Panel */
+.expiry-warnings {
+    margin-bottom: 16px;
+}
+
+.expiry-panel {
+    background: var(--warning-bg);
+    border: 1.5px solid #fbbf24;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.expiry-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.expiry-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-top: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.expiry-item.expired {
+    color: var(--danger);
+    background: rgba(220, 38, 38, 0.04);
+}
+
+.expiry-item.expiring-today {
+    color: #b91c1c;
+}
+
+.expiry-item.expiring-soon {
+    color: #92400e;
+}
+
+.expiry-label {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Expiry Badge on Cards */
+.expiry-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.expiry-badge.expired {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.expiry-badge.expiring-today {
+    background: var(--danger-bg);
+    color: #b91c1c;
+}
+
+.expiry-badge.expiring-soon {
+    background: var(--warning-bg);
+    color: #92400e;
+}
+
+.expiry-badge.expiring-week {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.expiry-badge.expiry-ok {
+    background: var(--gray-100);
+    color: var(--gray-500);
+}
+
+.item-card.card-expired {
+    border-left: 3px solid var(--danger);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;

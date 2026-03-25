@@ -124,7 +124,7 @@ app.get('/api/inventory', authRequired, async (req, res) => {
 });
 
 app.post('/api/inventory', authRequired, async (req, res) => {
-    const { name, quantity, unit, category } = req.body;
+    const { name, quantity, unit, category, expires_at } = req.body;
     if (!name || !quantity || !unit) {
         return res.status(400).json({ error: 'Naziv, količina i jedinica su obavezni' });
     }
@@ -137,16 +137,17 @@ app.post('/api/inventory', authRequired, async (req, res) => {
 
         if (existing.rows.length > 0) {
             const item = existing.rows[0];
+            const newExpiry = expires_at || item.expires_at;
             const updated = await pool.query(
-                'UPDATE inventory SET quantity = quantity + $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-                [quantity, item.id]
+                'UPDATE inventory SET quantity = quantity + $1, expires_at = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+                [quantity, newExpiry, item.id]
             );
             return res.json(updated.rows[0]);
         }
 
         const result = await pool.query(
-            'INSERT INTO inventory (user_id, name, quantity, unit, category) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [req.userId, name, quantity, unit, category || 'Ostalo']
+            'INSERT INTO inventory (user_id, name, quantity, unit, category, expires_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [req.userId, name, quantity, unit, category || 'Ostalo', expires_at || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -156,7 +157,7 @@ app.post('/api/inventory', authRequired, async (req, res) => {
 });
 
 app.put('/api/inventory/:id', authRequired, async (req, res) => {
-    const { name, quantity, unit, category } = req.body;
+    const { name, quantity, unit, category, expires_at } = req.body;
     try {
         const check = await pool.query(
             'SELECT * FROM inventory WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]
@@ -165,8 +166,8 @@ app.put('/api/inventory/:id', authRequired, async (req, res) => {
 
         const item = check.rows[0];
         const result = await pool.query(
-            'UPDATE inventory SET name = $1, quantity = $2, unit = $3, category = $4, updated_at = NOW() WHERE id = $5 RETURNING *',
-            [name || item.name, quantity || item.quantity, unit || item.unit, category || item.category, item.id]
+            'UPDATE inventory SET name = $1, quantity = $2, unit = $3, category = $4, expires_at = $5, updated_at = NOW() WHERE id = $6 RETURNING *',
+            [name || item.name, quantity || item.quantity, unit || item.unit, category || item.category, expires_at !== undefined ? expires_at : item.expires_at, item.id]
         );
         res.json(result.rows[0]);
     } catch (err) {

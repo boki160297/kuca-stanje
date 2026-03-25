@@ -40,6 +40,11 @@ async function initDB() {
         CREATE INDEX IF NOT EXISTS idx_inventory_user ON inventory(user_id);
         CREATE INDEX IF NOT EXISTS idx_shopping_user ON shopping_list(user_id);
     `);
+
+    // Migration: add expires_at column if missing
+    await pool.query(`
+        ALTER TABLE inventory ADD COLUMN IF NOT EXISTS expires_at DATE;
+    `);
 }
 
 module.exports = { pool, initDB };

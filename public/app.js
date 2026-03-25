@@ -64,6 +64,9 @@ const itemTarget = document.getElementById('item-target');
 const formBtnText = document.getElementById('form-btn-text');
 const suggestionsEl = document.getElementById('suggestions');
 const inventoryNotice = document.getElementById('inventory-notice');
+const itemExpires = document.getElementById('item-expires');
+const expiryGroup = document.getElementById('expiry-group');
+const expiryWarnings = document.getElementById('expiry-warnings');
 
 const consumeOverlay = document.getElementById('modal-consume-overlay');
 const consumeForm = document.getElementById('consume-form');
@@ -80,6 +83,27 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function getExpiryStatus(expiresAt) {
+    if (!expiresAt) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(expiresAt);
+    expiry.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { label: `Isteklo prije ${Math.abs(diffDays)} dana`, class: 'expired', days: diffDays };
+    if (diffDays === 0) return { label: 'Ističe danas!', class: 'expiring-today', days: 0 };
+    if (diffDays <= 3) return { label: `Ističe za ${diffDays} dana`, class: 'expiring-soon', days: diffDays };
+    if (diffDays <= 7) return { label: `Ističe za ${diffDays} dana`, class: 'expiring-week', days: diffDays };
+    return { label: formatDate(expiresAt), class: 'expiry-ok', days: diffDays };
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('hr-HR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 // =====================
@@ -208,6 +232,7 @@ function renderInventory() {
     }
 
     inventarCount.textContent = inventory.length;
+    renderExpiryWarnings();
     renderCategoryFilters();
 
     if (items.length === 0) {
@@ -235,15 +260,53 @@ function renderInventory() {
     bindInventoryActions();
 }
 
+function renderExpiryWarnings() {
+    const warnings = inventory
+        .map(item => ({ ...item, expiry: getExpiryStatus(item.expires_at) }))
+        .filter(item => item.expiry && item.expiry.days <= 3)
+        .sort((a, b) => a.expiry.days - b.expiry.days);
+
+    if (warnings.length === 0) {
+        expiryWarnings.innerHTML = '';
+        return;
+    }
+
+    let html = '<div class="expiry-panel">';
+    html += `<div class="expiry-panel-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Upozorenje: ${warnings.length} namirnica ističe uskoro
+    </div>`;
+
+    warnings.forEach(item => {
+        const icon = CATEGORY_ICONS[item.category] || '📦';
+        html += `<div class="expiry-item ${item.expiry.class}">
+            <span>${icon} ${escapeHtml(item.name)}</span>
+            <span class="expiry-label">${item.expiry.label}</span>
+        </div>`;
+    });
+
+    html += '</div>';
+    expiryWarnings.innerHTML = html;
+}
+
 function renderInventoryCard(item) {
     const icon = CATEGORY_ICONS[item.category] || '📦';
     const color = CATEGORY_COLORS[item.category] || '#f3f4f6';
+    const expiry = getExpiryStatus(item.expires_at);
+    let expiryBadge = '';
+    if (expiry) {
+        expiryBadge = `<div class="expiry-badge ${expiry.class}">${expiry.label}</div>`;
+    }
+
     return `
-    <div class="item-card" data-id="${item.id}">
+    <div class="item-card ${expiry && expiry.days < 0 ? 'card-expired' : ''}" data-id="${item.id}">
         <div class="item-icon" style="background:${color}">${icon}</div>
         <div class="item-info">
             <div class="item-name">${escapeHtml(item.name)}</div>
-            <div class="item-meta">${item.category}</div>
+            <div class="item-meta">${item.category}${expiryBadge}</div>
         </div>
         <div class="item-qty-badge">${formatQty(item.quantity)} ${item.unit}</div>
         <div class="item-actions">
@@ -435,6 +498,8 @@ function openAddModal(target) {
     itemForm.reset();
     itemId.value = '';
     itemTarget.value = target;
+    itemExpires.value = '';
+    expiryGroup.style.display = target === 'inventar' ? '' : 'none';
     inventoryNotice.style.display = 'none';
     modalOverlay.classList.add('open');
     setTimeout(() => itemName.focus(), 200);
@@ -451,6 +516,8 @@ function openEditModal(id, target) {
     itemQty.value = item.quantity;
     itemUnit.value = item.unit;
     itemCategory.value = item.category;
+    itemExpires.value = item.expires_at ? item.expires_at.split('T')[0] : '';
+    expiryGroup.style.display = target === 'inventar' ? '' : 'none';
     itemId.value = item.id;
     itemTarget.value = target;
     inventoryNotice.style.display = 'none';
@@ -474,6 +541,7 @@ itemForm.addEventListener('submit', async (e) => {
     const quantity = parseFloat(itemQty.value);
     const unit = itemUnit.value;
     const category = itemCategory.value;
+    const expires_at = itemExpires.value || null;
     const id = itemId.value;
     const target = itemTarget.value;
 
@@ -482,9 +550,9 @@ itemForm.addEventListener('submit', async (e) => {
     try {
         if (target === 'inventar') {
             if (id) {
-                await api('PUT', `/inventory/${id}`, { name, quantity, unit, category });
+                await api('PUT', `/inventory/${id}`, { name, quantity, unit, category, expires_at });
             } else {
-                await api('POST', '/inventory', { name, quantity, unit, category });
+                await api('POST', '/inventory', { name, quantity, unit, category, expires_at });
             }
         } else {
             if (id) {
