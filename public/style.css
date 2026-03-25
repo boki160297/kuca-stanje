@@ -921,23 +921,10 @@ form { padding: 20px 24px 24px; }
 .btn-remove-row:hover { background: var(--danger); color: white; }
 
 /* ===== Meal Planer ===== */
-.planer-section {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-}
-
-.planer-header {
+.planer-intro {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.planer-header h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--gray-800);
+    justify-content: center;
+    margin-bottom: 14px;
 }
 
 .planer-week-nav {

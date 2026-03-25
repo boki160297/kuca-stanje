@@ -178,30 +178,6 @@
                             Dodaj na listu
                         </button>
                     </div>
-
-                    <!-- Tjedni planer obroka -->
-                    <div class="planer-section">
-                        <div class="planer-header">
-                            <h3>🍽️ Planer obroka</h3>
-                            <div class="planer-week-nav">
-                                <button class="btn-week-nav" id="planer-prev">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                </button>
-                                <span id="planer-week-label"></span>
-                                <button class="btn-week-nav" id="planer-next">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="planer-grid" id="planer-grid"></div>
-                        <button class="btn-success btn-full" id="btn-planer-shopping" style="margin-top:10px">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-                                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-                            </svg>
-                            Generiraj listu iz plana
-                        </button>
-                    </div>
                 </section>
 
                 <!-- ===== INVENTAR ===== -->
@@ -328,6 +304,29 @@
                     </div>
                 </section>
 
+                <!-- ===== PLANER ===== -->
+                <section class="page" id="page-planer">
+                    <div class="planer-intro">
+                        <div class="planer-week-nav">
+                            <button class="btn-week-nav" id="planer-prev">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <span id="planer-week-label"></span>
+                            <button class="btn-week-nav" id="planer-next">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="planer-grid" id="planer-grid"></div>
+                    <button class="btn-success btn-full" id="btn-planer-shopping" style="margin-top:12px">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                        </svg>
+                        Generiraj listu iz plana
+                    </button>
+                </section>
+
                 <!-- ===== RECEPTI ===== -->
                 <section class="page" id="page-recepti">
                     <div class="recipe-intro">
@@ -411,6 +410,12 @@
                     </svg>
                     <span>Kuharica</span>
                     <span class="nav-badge" id="kuharica-count" style="display:none">0</span>
+                </button>
+                <button class="nav-item" data-page="planer">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span>Planer</span>
                 </button>
                 <button class="nav-item" data-page="recepti">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

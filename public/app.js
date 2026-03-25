@@ -322,6 +322,7 @@ const PAGE_TITLES = {
     inventar: 'Smočnica',
     kupovina: 'Kupovina',
     kuharica: 'Kuharica',
+    planer: 'Planer obroka',
     recepti: 'Čarobni Kuhar'
 };
 
