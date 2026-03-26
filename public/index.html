@@ -455,7 +455,15 @@
                 <form id="item-form">
                     <div class="form-group">
                         <label for="item-name">Naziv</label>
-                        <input type="text" id="item-name" placeholder="npr. Mlijeko" required autocomplete="off">
+                        <div class="input-with-barcode">
+                            <input type="text" id="item-name" placeholder="npr. Mlijeko" required autocomplete="off">
+                            <button type="button" class="btn-input-barcode" id="btn-scan-barcode" title="Skeniraj barkod" aria-label="Skeniraj barkod">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                    <line x1="7" y1="8" x2="7" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                                </svg>
+                            </button>
+                        </div>
                         <div class="suggestions" id="suggestions"></div>
                     </div>
                     <div class="form-row">
@@ -622,6 +630,16 @@
                     <input type="hidden" id="meal-type">
                     <button type="submit" class="btn-primary btn-full">Dodaj obrok</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Barkod skener (preko modala) -->
+        <div class="barcode-scanner-overlay" id="barcode-scanner-overlay" aria-hidden="true">
+            <div class="barcode-scanner-panel">
+                <video id="barcode-video" playsinline muted></video>
+                <div class="barcode-scanner-frame" aria-hidden="true"></div>
+                <p class="barcode-scanner-hint">Namjesti barkod u okvir · podaci o proizvodu: Open Food Facts</p>
+                <button type="button" class="btn-barcode-cancel" id="btn-barcode-cancel">Odustani</button>
             </div>
         </div>
     </div>

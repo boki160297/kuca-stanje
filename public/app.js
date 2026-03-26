@@ -1216,6 +1216,199 @@ document.getElementById('btn-obrisi-kupljeno').addEventListener('click', async (
 searchKupovina.addEventListener('input', renderShoppingList);
 
 // =====================
+//   BARCODE SCANNER (Open Food Facts)
+// =====================
+const barcodeOverlay = document.getElementById('barcode-scanner-overlay');
+const barcodeVideo = document.getElementById('barcode-video');
+const btnScanBarcode = document.getElementById('btn-scan-barcode');
+const btnBarcodeCancel = document.getElementById('btn-barcode-cancel');
+
+let barcodeScanning = false;
+let barcodeRafId = null;
+let barcodeStream = null;
+let barcodeLastDetect = 0;
+let barcodeDetectBusy = false;
+
+function offCategoryToApp(tags) {
+    if (!Array.isArray(tags)) return 'Ostalo';
+    const hay = tags.join(' ').toLowerCase();
+    const has = (s) => hay.includes(s);
+    if (has('fruit') || has('vegetable')) return 'Voće i povrće';
+    if (has('dairy') || has('milk') || has('cheese') || has('yogurt') || has('butter')) return 'Mlijeko i mliječni';
+    if (has('meat') || has('fish') || has('seafood') || has('chicken')) return 'Meso i riba';
+    if (has('bread') || has('bakery') || has('croissant')) return 'Pekara';
+    if (has('beverage') || has('water') || has('juice') || has('soda') || has('beer') || has('wine')) return 'Piće';
+    if (has('condiment') || has('sauce') || has('spice') || has('oil') || has('vinegar') || has('salt')) return 'Začini';
+    if (has('canned')) return 'Konzerve';
+    if (has('snack') || has('sweet') || has('chocolate') || has('candy') || has('biscuit') || has('cake')) return 'Slatkiši';
+    if (has('frozen')) return 'Smrznuto';
+    if (has('hygiene') || has('detergent') || has('cleaning')) return 'Higijena';
+    return 'Ostalo';
+}
+
+function parseOffQuantity(str) {
+    if (!str || typeof str !== 'string') return null;
+    const s = str.replace(/,/g, '.').toLowerCase();
+    const m = s.match(/([\d.]+)\s*(kg|g|l|ml|cl)\b/);
+    if (!m) return null;
+    let num = parseFloat(m[1]);
+    if (Number.isNaN(num) || num <= 0) return null;
+    const u = m[2];
+    if (u === 'kg') return { quantity: num, unit: 'kg' };
+    if (u === 'g') return { quantity: num, unit: 'g' };
+    if (u === 'l') return { quantity: num, unit: 'L' };
+    if (u === 'ml') return { quantity: num, unit: 'mL' };
+    if (u === 'cl') return { quantity: num * 10, unit: 'mL' };
+    return null;
+}
+
+async function fetchOpenFoodFactsProduct(barcode) {
+    const url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Mreža');
+    return res.json();
+}
+
+function applyOpenFoodProductToForm(product, barcode) {
+    if (!product) {
+        alert(`Proizvod nije u bazi Open Food Facts (barkod ${barcode}). Upiši naziv ručno.`);
+        itemName.value = '';
+        itemName.placeholder = `Barkod: ${barcode}`;
+        itemQty.value = 1;
+        itemUnit.value = 'kom';
+        itemName.focus();
+        return;
+    }
+    const name = (product.product_name_hr || product.product_name || product.generic_name_hr || product.generic_name || '').trim();
+    itemName.value = name || `Proizvod ${barcode}`;
+    itemName.placeholder = 'npr. Mlijeko';
+    itemCategory.value = offCategoryToApp(product.categories_tags);
+    const pq = parseOffQuantity(String(product.quantity || product.product_quantity || ''));
+    if (pq) {
+        itemQty.value = formatQty(pq.quantity);
+        itemUnit.value = pq.unit;
+    } else {
+        itemQty.value = 1;
+        itemUnit.value = 'kom';
+    }
+    itemName.focus();
+}
+
+function stopBarcodeScanner() {
+    barcodeScanning = false;
+    barcodeLastDetect = 0;
+    barcodeDetectBusy = false;
+    if (barcodeRafId != null) {
+        cancelAnimationFrame(barcodeRafId);
+        barcodeRafId = null;
+    }
+    if (barcodeStream) {
+        barcodeStream.getTracks().forEach(tr => tr.stop());
+        barcodeStream = null;
+    }
+    if (barcodeVideo) barcodeVideo.srcObject = null;
+    if (barcodeOverlay) {
+        barcodeOverlay.classList.remove('open');
+        barcodeOverlay.setAttribute('aria-hidden', 'true');
+    }
+}
+
+async function handleBarcodeScanned(code) {
+    try {
+        const data = await fetchOpenFoodFactsProduct(code);
+        const product = data.status === 1 && data.product ? data.product : null;
+        applyOpenFoodProductToForm(product, code);
+    } catch (e) {
+        console.error(e);
+        alert('Greška pri dohvatu proizvoda. Provjeri vezu.');
+        itemName.placeholder = `Barkod: ${code}`;
+        itemName.value = '';
+        itemName.focus();
+    }
+}
+
+async function openBarcodeScanner() {
+    if (!window.isSecureContext) {
+        alert('Skeniranje radi samo na sigurnoj vezi (HTTPS).');
+        return;
+    }
+    if (!('BarcodeDetector' in window)) {
+        alert('Ovaj preglednik nema ugrađeni skener barkoda. Koristi Chrome ili Safari na mobitelu.');
+        return;
+    }
+
+    stopBarcodeScanner();
+    barcodeOverlay.classList.add('open');
+    barcodeOverlay.setAttribute('aria-hidden', 'false');
+
+    try {
+        barcodeStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } }
+        });
+        barcodeVideo.srcObject = barcodeStream;
+        await barcodeVideo.play();
+    } catch (e) {
+        stopBarcodeScanner();
+        alert('Nema pristupa kameri. Provjeri dozvole u postavkama uređaja.');
+        return;
+    }
+
+    let detector;
+    try {
+        detector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+        });
+    } catch {
+        try {
+            detector = new BarcodeDetector();
+        } catch (e2) {
+            stopBarcodeScanner();
+            alert('Skeniranje barkoda nije dostupno na ovom uređaju.');
+            return;
+        }
+    }
+
+    barcodeScanning = true;
+    barcodeLastDetect = 0;
+    barcodeDetectBusy = false;
+
+    async function tick() {
+        if (!barcodeScanning) return;
+        if (barcodeDetectBusy) {
+            barcodeRafId = requestAnimationFrame(tick);
+            return;
+        }
+        const now = performance.now();
+        if (now - barcodeLastDetect < 180) {
+            barcodeRafId = requestAnimationFrame(tick);
+            return;
+        }
+        barcodeLastDetect = now;
+        barcodeDetectBusy = true;
+        try {
+            const codes = await detector.detect(barcodeVideo);
+            for (const c of codes) {
+                const raw = String(c.rawValue || '').trim();
+                if (/^\d{8,14}$/.test(raw)) {
+                    barcodeScanning = false;
+                    stopBarcodeScanner();
+                    await handleBarcodeScanned(raw);
+                    return;
+                }
+            }
+        } catch (_) { /* pojedinačni kadar */ }
+        finally {
+            barcodeDetectBusy = false;
+        }
+        if (barcodeScanning) barcodeRafId = requestAnimationFrame(tick);
+    }
+    barcodeRafId = requestAnimationFrame(tick);
+}
+
+if (btnScanBarcode) btnScanBarcode.addEventListener('click', () => openBarcodeScanner());
+if (btnBarcodeCancel) btnBarcodeCancel.addEventListener('click', () => stopBarcodeScanner());
+
+// =====================
 //   MODAL: Add / Edit
 // =====================
 function openAddModal(target) {
@@ -1257,6 +1450,7 @@ function openEditModal(id, target) {
 }
 
 function closeModal() {
+    stopBarcodeScanner();
     modalOverlay.classList.remove('open');
     suggestionsEl.classList.remove('open');
 }
@@ -1392,7 +1586,13 @@ document.getElementById('btn-remove-all').addEventListener('click', async () => 
 
 // ---- Keyboard shortcuts ----
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeModal(); closeConsumeModal(); closeRecipeFormModal(); closeMealModal(); }
+    if (e.key === 'Escape') {
+        if (barcodeOverlay && barcodeOverlay.classList.contains('open')) {
+            stopBarcodeScanner();
+            return;
+        }
+        closeModal(); closeConsumeModal(); closeRecipeFormModal(); closeMealModal();
+    }
 });
 
 // =====================
