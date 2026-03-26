@@ -84,6 +84,7 @@ const cookSuggestionMsg = document.getElementById('cook-suggestion-msg');
 const cookSuggestionHint = document.getElementById('cook-suggestion-hint');
 const cookSuggestionHintText = document.getElementById('cook-suggestion-hint-text');
 const btnCookSuggestion = document.getElementById('btn-cook-suggestion');
+const btnCookShopping = document.getElementById('btn-cook-shopping');
 
 const inventarCount = document.getElementById('inventar-count');
 const kupovinaCount = document.getElementById('kupovina-count');
@@ -558,6 +559,9 @@ function renderCookSuggestion() {
     cookSuggestionMsg.innerHTML = html;
     cookSuggestionEl.dataset.recipeId = String(pick.recipe.id);
     cookSuggestionEl.style.display = '';
+    if (btnCookShopping) {
+        btnCookShopping.style.display = pick.missingCount > 0 ? '' : 'none';
+    }
 }
 
 function renderExpiryWarnings() {
@@ -621,25 +625,34 @@ document.getElementById('btn-quick-inventar').addEventListener('click', () => op
 document.getElementById('btn-quick-kupovina').addEventListener('click', () => openAddModal('kupovina'));
 
 if (btnCookSuggestion && cookSuggestionEl) {
-    btnCookSuggestion.addEventListener('click', async () => {
+    btnCookSuggestion.addEventListener('click', () => {
+        const id = cookSuggestionEl.dataset.recipeId;
+        if (!id) return;
+        if (!cookbookRecipes.find(r => String(r.id) === String(id))) return;
+        selectedRecipeId = id;
+        navigateTo('kuharica');
+        openRecipeDetail(id);
+    });
+}
+
+if (btnCookShopping && cookSuggestionEl) {
+    btnCookShopping.addEventListener('click', async () => {
         const id = cookSuggestionEl.dataset.recipeId;
         if (!id) return;
         const recipe = cookbookRecipes.find(r => String(r.id) === String(id));
         if (!recipe) return;
-        btnCookSuggestion.disabled = true;
+        btnCookShopping.disabled = true;
         try {
             const { added, skipped } = await addMissingIngredientsToShopping(recipe);
-            selectedRecipeId = id;
-            navigateTo('kuharica');
-            openRecipeDetail(id);
             const parts = [];
             if (added > 0) parts.push(namirniceListaMsg(added));
             if (skipped > 0) parts.push(vecNaListiMsg(skipped));
             if (parts.length) alert(parts.join(' '));
+            else alert('Ništa nije dodano — sve je već na listi ili u smočnici.');
         } catch (e) {
             alert(e.message || 'Greška');
         } finally {
-            btnCookSuggestion.disabled = false;
+            btnCookShopping.disabled = false;
         }
     });
 }
