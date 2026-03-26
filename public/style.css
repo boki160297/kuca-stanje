@@ -630,6 +630,133 @@ body {
     margin-bottom: 12px;
 }
 
+/* Bulk shopping modal */
+.modal-bulk-shopping {
+    max-width: 480px;
+}
+
+.modal-body-bulk {
+    padding: 0 24px 24px;
+}
+
+.bulk-shopping-hint {
+    font-size: 13px;
+    color: var(--gray-600);
+    margin: 0 0 14px;
+    line-height: 1.45;
+}
+
+html[data-theme="dark"] .bulk-shopping-hint {
+    color: var(--gray-400);
+}
+
+.bulk-shopping-rows-wrap {
+    max-height: min(48vh, 380px);
+    overflow-y: auto;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.bulk-shopping-row {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bulk-shopping-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.bulk-shopping-row .bulk-name {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    background: var(--bg-input);
+    color: var(--gray-800);
+    outline: none;
+}
+
+.bulk-shopping-row .bulk-name:focus {
+    border-color: var(--primary-light);
+}
+
+.bulk-shopping-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.bulk-shopping-meta .bulk-qty {
+    width: 76px;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    background: var(--bg-input);
+    color: var(--gray-800);
+}
+
+.bulk-shopping-meta .bulk-unit,
+.bulk-shopping-meta .bulk-cat {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--bg-input);
+    color: var(--gray-800);
+}
+
+.bulk-row-remove {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+html[data-theme="dark"] .bulk-row-remove {
+    background: var(--gray-800);
+    color: var(--gray-400);
+}
+
+.btn-bulk-add-row {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1.5px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-bulk-add-row:active {
+    background: var(--primary-bg);
+}
+
 .search-box {
     flex: 1;
     display: flex;

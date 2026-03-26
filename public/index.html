@@ -633,6 +633,24 @@
             </div>
         </div>
 
+        <!-- MODAL: Više stavki na listu kupovine -->
+        <div class="modal-overlay" id="modal-bulk-shopping-overlay">
+            <div class="modal modal-bulk-shopping">
+                <div class="modal-header">
+                    <h2>Dodaj na listu</h2>
+                    <button type="button" class="btn-close" id="btn-close-bulk-shopping">&times;</button>
+                </div>
+                <div class="modal-body-bulk">
+                    <p class="bulk-shopping-hint">Jedna ili više namirnica — ispunjene retke šaljemo odjednom (prazni se preskaču). Najviše 40 stavki.</p>
+                    <div class="bulk-shopping-rows-wrap">
+                        <div id="bulk-shopping-rows"></div>
+                    </div>
+                    <button type="button" class="btn-bulk-add-row" id="btn-bulk-shopping-add-row">+ Još jedan red</button>
+                    <button type="button" class="btn-primary btn-full" id="btn-bulk-shopping-save">Dodaj sve na listu</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Barkod skener (preko modala) -->
         <div class="barcode-scanner-overlay" id="barcode-scanner-overlay" aria-hidden="true">
             <div class="barcode-scanner-panel">

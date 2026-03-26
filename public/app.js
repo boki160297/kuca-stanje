@@ -117,6 +117,9 @@ const inventoryNotice = document.getElementById('inventory-notice');
 const itemExpires = document.getElementById('item-expires');
 const expiryGroup = document.getElementById('expiry-group');
 
+const bulkShoppingOverlay = document.getElementById('modal-bulk-shopping-overlay');
+const bulkShoppingRows = document.getElementById('bulk-shopping-rows');
+
 const consumeOverlay = document.getElementById('modal-consume-overlay');
 const consumeForm = document.getElementById('consume-form');
 const consumeQty = document.getElementById('consume-qty');
@@ -132,6 +135,27 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+const BULK_ITEM_CATEGORIES = [
+    'Voće i povrće', 'Mlijeko i mliječni', 'Meso i riba', 'Pekara', 'Piće',
+    'Začini', 'Konzerve', 'Slatkiši', 'Smrznuto', 'Higijena', 'Ostalo'
+];
+const BULK_ITEM_UNITS = [
+    ['kom', 'kom'], ['kg', 'kg'], ['g', 'g'], ['L', 'L'], ['mL', 'mL'],
+    ['pak', 'pak'], ['vrećica', 'vrećica'], ['boca', 'boca'], ['kutija', 'kutija'], ['šolja', 'šolja']
+];
+
+function bulkCategoryOptionsHtml(selected = 'Ostalo') {
+    return BULK_ITEM_CATEGORIES.map(c =>
+        `<option value="${escapeHtml(c)}"${c === selected ? ' selected' : ''}>${escapeHtml(c)}</option>`
+    ).join('');
+}
+
+function bulkUnitOptionsHtml(selected = 'kom') {
+    return BULK_ITEM_UNITS.map(([v]) =>
+        `<option value="${escapeHtml(v)}"${v === selected ? ' selected' : ''}>${escapeHtml(v)}</option>`
+    ).join('');
 }
 
 function getExpiryStatus(expiresAt) {
@@ -622,7 +646,7 @@ function renderExpiryWarnings() {
 }
 
 document.getElementById('btn-quick-inventar').addEventListener('click', () => openAddModal('inventar'));
-document.getElementById('btn-quick-kupovina').addEventListener('click', () => openAddModal('kupovina'));
+document.getElementById('btn-quick-kupovina').addEventListener('click', () => openBulkShoppingModal());
 
 if (btnCookSuggestion && cookSuggestionEl) {
     btnCookSuggestion.addEventListener('click', () => {
@@ -1457,9 +1481,98 @@ function closeModal() {
 
 document.getElementById('btn-add-inventar').addEventListener('click', () => openAddModal('inventar'));
 document.getElementById('btn-add-category-item').addEventListener('click', () => openAddModal('inventar'));
-document.getElementById('btn-add-kupovina').addEventListener('click', () => openAddModal('kupovina'));
+document.getElementById('btn-add-kupovina').addEventListener('click', () => openBulkShoppingModal());
 document.getElementById('btn-close-modal').addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+function addBulkShoppingRow(shouldFocus = true) {
+    if (!bulkShoppingRows) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'bulk-shopping-row';
+    wrap.innerHTML = `
+        <input type="text" class="bulk-name" placeholder="Naziv namirnice" autocomplete="off">
+        <div class="bulk-shopping-meta">
+            <input type="number" class="bulk-qty" min="0.01" step="0.01" value="1">
+            <select class="bulk-unit">${bulkUnitOptionsHtml('kom')}</select>
+            <select class="bulk-cat">${bulkCategoryOptionsHtml('Ostalo')}</select>
+            <button type="button" class="bulk-row-remove" aria-label="Ukloni red">&times;</button>
+        </div>
+    `;
+    wrap.querySelector('.bulk-row-remove').addEventListener('click', () => {
+        const rows = bulkShoppingRows.querySelectorAll('.bulk-shopping-row');
+        if (rows.length <= 1) {
+            wrap.querySelector('.bulk-name').value = '';
+            wrap.querySelector('.bulk-qty').value = 1;
+            wrap.querySelector('.bulk-unit').value = 'kom';
+            wrap.querySelector('.bulk-cat').value = 'Ostalo';
+            return;
+        }
+        wrap.remove();
+    });
+    bulkShoppingRows.appendChild(wrap);
+    if (shouldFocus) wrap.querySelector('.bulk-name').focus();
+}
+
+function openBulkShoppingModal() {
+    if (!bulkShoppingOverlay || !bulkShoppingRows) return;
+    bulkShoppingRows.innerHTML = '';
+    addBulkShoppingRow(false);
+    bulkShoppingOverlay.classList.add('open');
+    const first = bulkShoppingRows.querySelector('.bulk-name');
+    if (first) first.focus();
+}
+
+function closeBulkShoppingModal() {
+    if (bulkShoppingOverlay) bulkShoppingOverlay.classList.remove('open');
+}
+
+const btnCloseBulkShopping = document.getElementById('btn-close-bulk-shopping');
+if (btnCloseBulkShopping) btnCloseBulkShopping.addEventListener('click', () => closeBulkShoppingModal());
+
+if (bulkShoppingOverlay) {
+    bulkShoppingOverlay.addEventListener('click', (e) => {
+        if (e.target === bulkShoppingOverlay) closeBulkShoppingModal();
+    });
+}
+
+const btnBulkShoppingAddRow = document.getElementById('btn-bulk-shopping-add-row');
+if (btnBulkShoppingAddRow) btnBulkShoppingAddRow.addEventListener('click', () => addBulkShoppingRow(true));
+
+const btnBulkShoppingSave = document.getElementById('btn-bulk-shopping-save');
+if (btnBulkShoppingSave && bulkShoppingRows) {
+    btnBulkShoppingSave.addEventListener('click', async () => {
+        const rows = bulkShoppingRows.querySelectorAll('.bulk-shopping-row');
+        const items = [];
+        rows.forEach(row => {
+            const name = row.querySelector('.bulk-name').value.trim();
+            const qty = parseFloat(row.querySelector('.bulk-qty').value);
+            const unit = row.querySelector('.bulk-unit').value;
+            const category = row.querySelector('.bulk-cat').value;
+            if (!name) return;
+            if (Number.isNaN(qty) || qty <= 0) return;
+            items.push({ name, quantity: qty, unit, category });
+        });
+        if (items.length === 0) {
+            alert('Unesi barem jednu namirnicu s nazivom i količinom većom od 0.');
+            return;
+        }
+        if (items.length > 40) {
+            alert('Najviše 40 stavki odjednom.');
+            return;
+        }
+        btnBulkShoppingSave.disabled = true;
+        try {
+            await api('POST', '/shopping/batch', { items });
+            await loadData();
+            closeBulkShoppingModal();
+            alert(`Dodano na listu: ${items.length}.`);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btnBulkShoppingSave.disabled = false;
+        }
+    });
+}
 
 itemForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1589,6 +1702,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (barcodeOverlay && barcodeOverlay.classList.contains('open')) {
             stopBarcodeScanner();
+            return;
+        }
+        if (bulkShoppingOverlay && bulkShoppingOverlay.classList.contains('open')) {
+            closeBulkShoppingModal();
             return;
         }
         closeModal(); closeConsumeModal(); closeRecipeFormModal(); closeMealModal();

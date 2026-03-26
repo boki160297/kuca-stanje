@@ -253,6 +253,54 @@ app.post('/api/shopping', authRequired, async (req, res) => {
     }
 });
 
+app.post('/api/shopping/batch', authRequired, async (req, res) => {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: 'Očekuje se lista stavki' });
+    }
+
+    const prepared = [];
+    for (const item of items) {
+        const name = item.name != null ? String(item.name).trim() : '';
+        const quantity = parseFloat(item.quantity);
+        const unit = item.unit != null ? String(item.unit).trim() : '';
+        if (!name || !unit || Number.isNaN(quantity) || quantity <= 0) continue;
+        let category = 'Ostalo';
+        if (item.category != null && String(item.category).trim()) {
+            category = String(item.category).trim();
+        }
+        prepared.push({ name, quantity, unit, category });
+    }
+
+    if (prepared.length === 0) {
+        return res.status(400).json({ error: 'Nema valjanih stavki (naziv, količina > 0, jedinica)' });
+    }
+    if (prepared.length > 40) {
+        return res.status(400).json({ error: 'Najviše 40 stavki odjednom' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const inserted = [];
+        for (const row of prepared) {
+            const result = await client.query(
+                'INSERT INTO shopping_list (user_id, name, quantity, unit, category) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                [req.userId, row.name, row.quantity, row.unit, row.category]
+            );
+            inserted.push(result.rows[0]);
+        }
+        await client.query('COMMIT');
+        res.status(201).json(inserted);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    } finally {
+        client.release();
+    }
+});
+
 app.put('/api/shopping/:id', authRequired, async (req, res) => {
     const { name, quantity, unit, category } = req.body;
     try {
