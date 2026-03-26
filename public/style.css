@@ -381,6 +381,96 @@ body {
 .stat-value { font-size: 24px; font-weight: 700; color: var(--gray-900); line-height: 1; }
 .stat-label { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
 
+/* Prijedlog za kuhanje (početna) */
+.cook-suggestion {
+    margin-top: 14px;
+    border-radius: var(--radius);
+    border: 1.5px solid rgba(22, 163, 74, 0.35);
+    background: var(--primary-bg);
+    overflow: hidden;
+}
+
+.cook-suggestion-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px 14px 16px;
+}
+
+.cook-suggestion-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.cook-suggestion-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.cook-suggestion-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.cook-suggestion-msg {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+}
+
+.cook-suggestion-msg strong {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.btn-cook-suggestion {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-cook-suggestion:active {
+    transform: scale(0.98);
+    opacity: 0.95;
+}
+
+.cook-suggestion-hint {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-style: dashed;
+    background: transparent;
+}
+
+.cook-suggestion-hint p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+@media (max-width: 380px) {
+    .cook-suggestion-inner {
+        flex-wrap: wrap;
+    }
+    .btn-cook-suggestion {
+        width: 100%;
+    }
+}
+
 .quick-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;

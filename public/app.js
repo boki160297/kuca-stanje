@@ -79,6 +79,11 @@ const statInventar = document.getElementById('stat-inventar');
 const statKupovina = document.getElementById('stat-kupovina');
 const statExpiry = document.getElementById('stat-expiry');
 const expiryWarnings = document.getElementById('expiry-warnings');
+const cookSuggestionEl = document.getElementById('cook-suggestion');
+const cookSuggestionMsg = document.getElementById('cook-suggestion-msg');
+const cookSuggestionHint = document.getElementById('cook-suggestion-hint');
+const cookSuggestionHintText = document.getElementById('cook-suggestion-hint-text');
+const btnCookSuggestion = document.getElementById('btn-cook-suggestion');
 
 const inventarCount = document.getElementById('inventar-count');
 const kupovinaCount = document.getElementById('kupovina-count');
@@ -183,6 +188,122 @@ function findInventoryMatch(ingredientName) {
         const minWords = Math.min(nameWords.length, invWords.length);
         return matched >= minWords && matched > 0;
     });
+}
+
+function recipeIngredientsArray(recipe) {
+    if (!recipe || !recipe.ingredients) return [];
+    try {
+        const ings = typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : recipe.ingredients;
+        return Array.isArray(ings) ? ings.filter(i => i && String(i.name || '').trim()) : [];
+    } catch {
+        return [];
+    }
+}
+
+function parseIngredientQtyUnit(amountStr) {
+    const raw = (amountStr || '').trim().toLowerCase();
+    if (!raw) return { quantity: 1, unit: 'kom' };
+    const m = raw.match(/^([\d.,]+)\s*(.*)$/);
+    if (m) {
+        let q = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
+        if (Number.isNaN(q) || q <= 0) q = 1;
+        let unit = (m[2] || '').trim();
+        if (!unit) unit = 'kom';
+        return { quantity: q, unit };
+    }
+    return { quantity: 1, unit: raw || 'kom' };
+}
+
+function normalizeListName(s) {
+    return String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function shoppingListHasIngredient(ingredientName) {
+    const n = normalizeListName(ingredientName);
+    return shoppingList.some(item => normalizeListName(item.name) === n);
+}
+
+/** Vraća { added, skipped } nakon API poziva; osvježi listu ako refresh !== false */
+async function addMissingIngredientsToShopping(recipe, { refresh = true } = {}) {
+    const ingredients = recipeIngredientsArray(recipe);
+    const missing = ingredients.filter(ing => !findInventoryMatch(ing.name));
+    let added = 0;
+    let skipped = 0;
+    const cat = recipe.category || 'Ostalo';
+    for (const ing of missing) {
+        if (shoppingListHasIngredient(ing.name)) {
+            skipped++;
+            continue;
+        }
+        const { quantity, unit } = parseIngredientQtyUnit(ing.amount);
+        try {
+            await api('POST', '/shopping', {
+                name: String(ing.name).trim(),
+                quantity,
+                unit,
+                category: cat
+            });
+            added++;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    if (refresh) await loadData();
+    return { added, skipped };
+}
+
+function sastojakRijec(n) {
+    const x = Math.abs(n) % 100;
+    const z = x % 10;
+    if (x >= 11 && x <= 14) return 'sastojaka';
+    if (z === 1) return 'sastojak';
+    if (z >= 2 && z <= 4) return 'sastojka';
+    return 'sastojaka';
+}
+
+function namirniceListaMsg(n) {
+    if (n === 1) return '1 namirnica dodana na listu za kupovinu.';
+    if (n >= 2 && n <= 4) return `${n} namirnice dodane na listu za kupovinu.`;
+    return `${n} namirnica dodano na listu za kupovinu.`;
+}
+
+function vecNaListiMsg(n) {
+    if (n === 1) return 'Jedna je već bila na listi.';
+    return `${n} ih je već bilo na listi.`;
+}
+
+function pickTodayCookSuggestion() {
+    if (!cookbookRecipes.length) return { type: 'empty' };
+
+    const scored = [];
+    for (const r of cookbookRecipes) {
+        const ings = recipeIngredientsArray(r);
+        if (ings.length === 0) continue;
+        const missing = ings.filter(ing => !findInventoryMatch(ing.name));
+        const haveCount = ings.length - missing.length;
+        if (haveCount === 0) continue;
+        scored.push({
+            recipe: r,
+            ingredients: ings,
+            missing,
+            missingCount: missing.length,
+            haveCount
+        });
+    }
+
+    if (scored.length === 0) return { type: 'no_overlap' };
+
+    const ideal = scored.filter(s => s.missingCount >= 1 && s.missingCount <= 4);
+    let pool = ideal.length ? ideal : scored.filter(s => s.missingCount === 0);
+    if (!pool.length) pool = scored.slice();
+
+    pool.sort((a, b) => {
+        if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount;
+        return b.haveCount - a.haveCount;
+    });
+
+    const best = pool[0];
+    return { type: 'ok', ...best };
 }
 
 function getGreetingDate() {
@@ -398,6 +519,45 @@ function renderDashboard() {
     document.getElementById('stat-card-expiry').style.display = expiringItems.length > 0 ? '' : 'none';
 
     renderExpiryWarnings();
+    renderCookSuggestion();
+}
+
+function renderCookSuggestion() {
+    if (!cookSuggestionEl || !cookSuggestionHint) return;
+
+    cookSuggestionEl.style.display = 'none';
+    cookSuggestionHint.style.display = 'none';
+    delete cookSuggestionEl.dataset.recipeId;
+
+    const pick = pickTodayCookSuggestion();
+
+    if (pick.type === 'empty') {
+        cookSuggestionHintText.textContent =
+            'Dodaj recept u kuharicu (ručno ili iz Čarobnog kuhara) pa ćemo predložiti jelo prema tvojoj smočnici.';
+        cookSuggestionHint.style.display = '';
+        return;
+    }
+    if (pick.type === 'no_overlap') {
+        cookSuggestionHintText.textContent =
+            'Još nema prijedloga — u tvojim receptima nema namirnica koje trenutno imaš u smočnici. Dodaj namirnice ili prilagodi recepte.';
+        cookSuggestionHint.style.display = '';
+        return;
+    }
+
+    const title = escapeHtml(pick.recipe.title);
+    let html;
+    if (pick.missingCount === 0) {
+        html = `Imaš sve sastojke za <strong>${title}</strong> — možeš krenuti odmah.`;
+    } else if (pick.missingCount === 1) {
+        html = `Možeš kuhati <strong>${title}</strong> — u smočnici ti još fali <strong>1 sastojak</strong>.`;
+    } else {
+        const w = sastojakRijec(pick.missingCount);
+        const samo = pick.missingCount <= 4 ? 'samo ' : '';
+        html = `Možeš kuhati <strong>${title}</strong> — fale ti još ${samo}<strong>${pick.missingCount}</strong> ${w}.`;
+    }
+    cookSuggestionMsg.innerHTML = html;
+    cookSuggestionEl.dataset.recipeId = String(pick.recipe.id);
+    cookSuggestionEl.style.display = '';
 }
 
 function renderExpiryWarnings() {
@@ -459,6 +619,30 @@ function renderExpiryWarnings() {
 
 document.getElementById('btn-quick-inventar').addEventListener('click', () => openAddModal('inventar'));
 document.getElementById('btn-quick-kupovina').addEventListener('click', () => openAddModal('kupovina'));
+
+if (btnCookSuggestion && cookSuggestionEl) {
+    btnCookSuggestion.addEventListener('click', async () => {
+        const id = cookSuggestionEl.dataset.recipeId;
+        if (!id) return;
+        const recipe = cookbookRecipes.find(r => String(r.id) === String(id));
+        if (!recipe) return;
+        btnCookSuggestion.disabled = true;
+        try {
+            const { added, skipped } = await addMissingIngredientsToShopping(recipe);
+            selectedRecipeId = id;
+            navigateTo('kuharica');
+            openRecipeDetail(id);
+            const parts = [];
+            if (added > 0) parts.push(namirniceListaMsg(added));
+            if (skipped > 0) parts.push(vecNaListiMsg(skipped));
+            if (parts.length) alert(parts.join(' '));
+        } catch (e) {
+            alert(e.message || 'Greška');
+        } finally {
+            btnCookSuggestion.disabled = false;
+        }
+    });
+}
 
 // =====================
 //   MEAL PLANER
@@ -1262,8 +1446,14 @@ function openRecipeDetail(id) {
     topBarTitle.textContent = r.title;
     btnBack.style.display = '';
 
-    const ingredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
-    const steps = typeof r.steps === 'string' ? JSON.parse(r.steps) : r.steps;
+    const ingredients = recipeIngredientsArray(r);
+    let steps;
+    try {
+        steps = typeof r.steps === 'string' ? JSON.parse(r.steps) : r.steps;
+    } catch {
+        steps = [];
+    }
+    if (!Array.isArray(steps)) steps = [];
 
     const ingredientsList = ingredients.map(ing => {
         const invMatch = findInventoryMatch(ing.name);
@@ -1311,19 +1501,14 @@ function openRecipeDetail(id) {
 document.getElementById('btn-add-missing').addEventListener('click', async () => {
     const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
     if (!r) return;
-    const ingredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
-    const missing = ingredients.filter(ing => !findInventoryMatch(ing.name));
+    const missing = recipeIngredientsArray(r).filter(ing => !findInventoryMatch(ing.name));
     if (missing.length === 0) { alert('Imate sve sastojke!'); return; }
 
-    let added = 0;
-    for (const ing of missing) {
-        try {
-            await api('POST', '/shopping', { name: ing.name, quantity: 1, unit: 'kom', category: 'Ostalo' });
-            added++;
-        } catch (e) { console.error(e); }
-    }
-    await loadData();
-    alert(`${added} namirnica dodano na listu za kupovinu!`);
+    const { added, skipped } = await addMissingIngredientsToShopping(r);
+    let msg = '';
+    if (added > 0) msg = `${added} namirnica dodano na listu za kupovinu!`;
+    if (skipped > 0) msg += (msg ? ' ' : '') + `(${skipped} već na listi)`;
+    alert(msg || 'Ništa nije dodano.');
 });
 
 document.getElementById('btn-edit-recipe').addEventListener('click', () => {
