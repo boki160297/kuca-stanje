@@ -161,6 +161,10 @@ const consumeQty = document.getElementById('consume-qty');
 const consumeId = document.getElementById('consume-id');
 const consumeInfo = document.getElementById('consume-info');
 
+const shareRecipeOverlay = document.getElementById('modal-share-recipe-overlay');
+const shareRecipeForm = document.getElementById('share-recipe-form');
+const shareRecipeTarget = document.getElementById('share-recipe-target');
+
 // ---- Helpers ----
 function formatQty(qty) {
     return qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
@@ -1750,6 +1754,10 @@ function openConsumeModal(id) {
 
 function closeConsumeModal() { consumeOverlay.classList.remove('open'); }
 
+function closeShareRecipeModal() {
+    if (shareRecipeOverlay) shareRecipeOverlay.classList.remove('open');
+}
+
 document.getElementById('btn-close-consume').addEventListener('click', closeConsumeModal);
 consumeOverlay.addEventListener('click', (e) => { if (e.target === consumeOverlay) closeConsumeModal(); });
 
@@ -1785,6 +1793,10 @@ document.addEventListener('keydown', (e) => {
         }
         if (bulkShoppingOverlay && bulkShoppingOverlay.classList.contains('open')) {
             closeBulkShoppingModal();
+            return;
+        }
+        if (shareRecipeOverlay && shareRecipeOverlay.classList.contains('open')) {
+            closeShareRecipeModal();
             return;
         }
         closeModal(); closeConsumeModal(); closeRecipeFormModal(); closeMealModal();
@@ -1937,6 +1949,40 @@ document.getElementById('btn-delete-recipe').addEventListener('click', async () 
         updateNavBadges();
     } catch (err) { alert(err.message); }
 });
+
+function openShareRecipeModal() {
+    if (!shareRecipeOverlay || !shareRecipeTarget || !selectedRecipeId) return;
+    shareRecipeTarget.value = '';
+    shareRecipeOverlay.classList.add('open');
+    setTimeout(() => shareRecipeTarget.focus(), 150);
+}
+
+const btnShareRecipe = document.getElementById('btn-share-recipe');
+if (btnShareRecipe) btnShareRecipe.addEventListener('click', openShareRecipeModal);
+
+const btnCloseShareRecipe = document.getElementById('btn-close-share-recipe');
+if (btnCloseShareRecipe) btnCloseShareRecipe.addEventListener('click', closeShareRecipeModal);
+
+if (shareRecipeOverlay) {
+    shareRecipeOverlay.addEventListener('click', (e) => {
+        if (e.target === shareRecipeOverlay) closeShareRecipeModal();
+    });
+}
+
+if (shareRecipeForm && shareRecipeTarget) {
+    shareRecipeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const target = shareRecipeTarget.value.trim();
+        if (!target || !selectedRecipeId) return;
+        try {
+            const data = await api('POST', `/cookbook/${selectedRecipeId}/share`, { target });
+            alert(I18N.t('share.success', { user: data.sharedWith }));
+            closeShareRecipeModal();
+        } catch (err) {
+            alert(err.message || I18N.t('errors.generic'));
+        }
+    });
+}
 
 // ---- Recipe Form Modal ----
 const recipeFormOverlay = document.getElementById('modal-recipe-overlay');

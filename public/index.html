@@ -316,6 +316,13 @@
                                 </svg>
                                 <span data-i18n="recipe.edit">Uredi</span>
                             </button>
+                            <button class="btn-secondary" id="btn-share-recipe" type="button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                                </svg>
+                                <span data-i18n="share.action">Podijeli</span>
+                            </button>
                             <button class="btn-danger" id="btn-delete-recipe">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -641,6 +648,24 @@
                     <input type="hidden" id="meal-date">
                     <input type="hidden" id="meal-type">
                     <button type="submit" class="btn-primary btn-full" data-i18n="meal.submit">Dodaj obrok</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: Podijeli recept -->
+        <div class="modal-overlay" id="modal-share-recipe-overlay">
+            <div class="modal modal-small">
+                <div class="modal-header">
+                    <h2 data-i18n="share.title">Podijeli recept</h2>
+                    <button type="button" class="btn-close" id="btn-close-share-recipe">&times;</button>
+                </div>
+                <form id="share-recipe-form">
+                    <p class="share-recipe-hint" data-i18n="share.hint">Korisnik će dobiti kopiju u svojoj kuharici.</p>
+                    <div class="form-group">
+                        <label for="share-recipe-target" data-i18n-label="share.targetLabel">Korisničko ime ili email</label>
+                        <input type="text" id="share-recipe-target" data-i18n-placeholder="share.targetPh" placeholder="npr. ana ili ana@email.com" autocomplete="off" required>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full" data-i18n="share.submit">Pošalji</button>
                 </form>
             </div>
         </div>

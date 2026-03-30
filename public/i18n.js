@@ -46,6 +46,13 @@
         'recipe.edit': 'Uredi',
         'recipe.delete': 'Obriši',
         'recipe.addMissing': 'Dodaj nedostajuće na listu za kupovinu',
+        'share.action': 'Podijeli',
+        'share.title': 'Podijeli recept',
+        'share.hint': 'Korisnik će dobiti kopiju u svojoj kuharici.',
+        'share.targetLabel': 'Korisničko ime ili email',
+        'share.targetPh': 'npr. ana ili ana@email.com',
+        'share.submit': 'Pošalji',
+        'share.success': 'Recept je dodan u kuharicu korisnika {user}.',
         'plan.genList': 'Generiraj listu iz plana',
         'ai.title': 'Čarobni Kuhar',
         'ai.subtitle': 'Predloži recept od namirnica koje imate u smočnici',
@@ -269,6 +276,13 @@
         'recipe.edit': 'Edit',
         'recipe.delete': 'Delete',
         'recipe.addMissing': 'Add missing to shopping list',
+        'share.action': 'Share',
+        'share.title': 'Share recipe',
+        'share.hint': 'They will get a copy in their cookbook.',
+        'share.targetLabel': 'Username or email',
+        'share.targetPh': 'e.g. ana or ana@email.com',
+        'share.submit': 'Send',
+        'share.success': "Recipe was added to {user}'s cookbook.",
         'plan.genList': 'Build list from plan',
         'ai.title': 'Magic Chef',
         'ai.subtitle': 'Suggest a recipe from your pantry',
@@ -479,7 +493,10 @@
         'start i end su obavezni': 'start and end dates are required',
         'Datum i vrsta obroka su obavezni': 'Date and meal type are required',
         'Odaberite recept ili unesite naziv': 'Choose a recipe or enter a name',
-        'Obrok nije pronađen': 'Meal not found'
+        'Obrok nije pronađen': 'Meal not found',
+        'Unesite korisničko ime ili email': 'Enter a username or email',
+        'Korisnik nije pronađen': 'User not found',
+        'Ne možete podijeliti recept sa samim sobom': 'You cannot share a recipe with yourself'
     };
 
     function getLang() {

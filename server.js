@@ -543,6 +543,65 @@ app.post('/api/cookbook', authRequired, async (req, res) => {
     }
 });
 
+app.post('/api/cookbook/:id/share', authRequired, async (req, res) => {
+    const target = String(req.body.target || '').trim();
+    if (!target) {
+        return res.status(400).json({ error: 'Unesite korisničko ime ili email' });
+    }
+    try {
+        const recipeResult = await pool.query(
+            'SELECT * FROM cookbook WHERE id = $1 AND user_id = $2',
+            [req.params.id, req.userId]
+        );
+        if (recipeResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Recept nije pronađen' });
+        }
+        const r = recipeResult.rows[0];
+
+        const userResult = await pool.query(
+            'SELECT id, username FROM users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)',
+            [target]
+        );
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Korisnik nije pronađen' });
+        }
+        const recipient = userResult.rows[0];
+        if (recipient.id === req.userId) {
+            return res.status(400).json({ error: 'Ne možete podijeliti recept sa samim sobom' });
+        }
+
+        let ingredients = r.ingredients;
+        let steps = r.steps;
+        if (typeof ingredients === 'string') {
+            try { ingredients = JSON.parse(ingredients); } catch { ingredients = []; }
+        }
+        if (typeof steps === 'string') {
+            try { steps = JSON.parse(steps); } catch { steps = []; }
+        }
+
+        await pool.query(
+            `INSERT INTO cookbook (user_id, title, description, category, prep_time, difficulty, servings, ingredients, steps, tip)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [
+                recipient.id,
+                r.title,
+                r.description || '',
+                r.category || 'Ostalo',
+                r.prep_time || '',
+                r.difficulty || '',
+                r.servings || '',
+                JSON.stringify(ingredients),
+                JSON.stringify(steps),
+                r.tip || ''
+            ]
+        );
+        res.json({ ok: true, sharedWith: recipient.username });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Greška na serveru' });
+    }
+});
+
 app.get('/api/cookbook/:id', authRequired, async (req, res) => {
     try {
         const result = await pool.query(
