@@ -103,6 +103,41 @@ body {
 .auth-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
 .auth-header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
 
+.auth-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.auth-header-row > div:first-child {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
+.lang-select {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.auth-header .lang-select {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+.top-bar-right .lang-select {
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--gray-800);
+}
+[data-theme="dark"] .top-bar-right .lang-select {
+    color: var(--gray-200);
+}
+
 .auth-tabs { display: flex; border-bottom: 1.5px solid var(--border-color); }
 
 .auth-tab {

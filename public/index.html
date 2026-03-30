@@ -26,43 +26,51 @@
         <div id="auth-screen">
             <div class="auth-container">
                 <div class="auth-header">
-                    <h1>Moja Smočnica</h1>
-                    <p>Tvoja digitalna smočnica i kuharica</p>
+                    <div class="auth-header-row">
+                        <div>
+                            <h1 data-i18n="app.title">Moja Smočnica</h1>
+                            <p data-i18n="app.subtitle">Tvoja digitalna smočnica i kuharica</p>
+                        </div>
+                        <select class="lang-select" id="lang-select-auth" title="Language" aria-label="Language">
+                            <option value="hr">HR</option>
+                            <option value="en">EN</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="auth-tabs">
-                    <button class="auth-tab active" data-auth="login">Prijava</button>
-                    <button class="auth-tab" data-auth="register">Registracija</button>
+                    <button type="button" class="auth-tab active" data-auth="login" data-i18n="auth.login">Prijava</button>
+                    <button type="button" class="auth-tab" data-auth="register" data-i18n="auth.register">Registracija</button>
                 </div>
 
                 <form id="login-form" class="auth-form">
                     <div class="form-group">
-                        <label for="login-username">Korisničko ime ili email</label>
+                        <label for="login-username" data-i18n-label="auth.user">Korisničko ime ili email</label>
                         <input type="text" id="login-username" required autocomplete="username">
                     </div>
                     <div class="form-group">
-                        <label for="login-password">Lozinka</label>
+                        <label for="login-password" data-i18n-label="auth.password">Lozinka</label>
                         <input type="password" id="login-password" required autocomplete="current-password">
                     </div>
                     <div class="auth-error" id="login-error"></div>
-                    <button type="submit" class="btn-primary btn-full">Prijavi se</button>
+                    <button type="submit" class="btn-primary btn-full" data-i18n="auth.loginBtn">Prijavi se</button>
                 </form>
 
                 <form id="register-form" class="auth-form" style="display:none">
                     <div class="form-group">
-                        <label for="reg-username">Korisničko ime</label>
+                        <label for="reg-username" data-i18n-label="auth.username">Korisničko ime</label>
                         <input type="text" id="reg-username" required minlength="3" autocomplete="username">
                     </div>
                     <div class="form-group">
-                        <label for="reg-email">Email</label>
+                        <label for="reg-email" data-i18n-label="auth.email">Email</label>
                         <input type="email" id="reg-email" required autocomplete="email">
                     </div>
                     <div class="form-group">
-                        <label for="reg-password">Lozinka</label>
+                        <label for="reg-password" data-i18n-label="auth.password">Lozinka</label>
                         <input type="password" id="reg-password" required minlength="6" autocomplete="new-password">
                     </div>
                     <div class="auth-error" id="register-error"></div>
-                    <button type="submit" class="btn-primary btn-full">Registriraj se</button>
+                    <button type="submit" class="btn-primary btn-full" data-i18n="auth.registerBtn">Registriraj se</button>
                 </form>
             </div>
         </div>
@@ -81,7 +89,11 @@
                     <h1 id="top-bar-title">Početna</h1>
                 </div>
                 <div class="top-bar-right">
-                    <button class="btn-theme" id="btn-theme" title="Tamni/svijetli mod">
+                    <select class="lang-select" id="lang-select-main" data-i18n-title="lang.label" title="Jezik" aria-label="Language">
+                        <option value="hr">HR</option>
+                        <option value="en">EN</option>
+                    </select>
+                    <button class="btn-theme" id="btn-theme" data-i18n-title="theme.title" title="Tamni/svijetli mod">
                         <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                         </svg>
@@ -103,10 +115,10 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                    <span>Instaliraj aplikaciju</span>
+                    <span data-i18n="install.text">Instaliraj aplikaciju</span>
                 </div>
                 <div class="install-banner-actions">
-                    <button class="btn-install" id="btn-install">Instaliraj</button>
+                    <button class="btn-install" id="btn-install" data-i18n="install.btn">Instaliraj</button>
                     <button class="btn-install-dismiss" id="btn-install-dismiss">&times;</button>
                 </div>
             </div>
@@ -118,7 +130,7 @@
                 <section class="page active" id="page-pocetna">
                     <div class="greeting-card">
                         <div>
-                            <h2>Pozdrav, <span id="user-display"></span> 👋</h2>
+                            <h2><span data-i18n="home.greeting">Pozdrav,</span> <span id="user-display"></span> 👋</h2>
                             <p class="greeting-sub" id="greeting-date"></p>
                         </div>
                     </div>
@@ -133,7 +145,7 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-inventar">0</span>
-                                <span class="stat-label">Namirnica</span>
+                                <span class="stat-label" data-i18n="stat.items">Namirnica</span>
                             </div>
                         </div>
                         <div class="stat-card" data-goto="kupovina">
@@ -145,7 +157,7 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-kupovina">0</span>
-                                <span class="stat-label">Za kupiti</span>
+                                <span class="stat-label" data-i18n="stat.tobuy">Za kupiti</span>
                             </div>
                         </div>
                         <div class="stat-card stat-wide" id="stat-card-expiry">
@@ -157,7 +169,7 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-expiry">0</span>
-                                <span class="stat-label">Ističe uskoro</span>
+                                <span class="stat-label" data-i18n="stat.expiring">Ističe uskoro</span>
                             </div>
                         </div>
                     </div>
@@ -167,12 +179,12 @@
                             <div class="cook-suggestion-icon" aria-hidden="true">🍳</div>
                             <div class="cook-suggestion-main">
                                 <div class="cook-suggestion-text">
-                                    <div class="cook-suggestion-label">Što danas kuhati</div>
+                                    <div class="cook-suggestion-label" data-i18n="cook.label">Što danas kuhati</div>
                                     <p class="cook-suggestion-msg" id="cook-suggestion-msg"></p>
                                 </div>
                                 <div class="cook-suggestion-actions">
-                                    <button type="button" class="btn-cook-suggestion" id="btn-cook-suggestion">Kuhaj ovo</button>
-                                    <button type="button" class="btn-cook-shopping" id="btn-cook-shopping">Dodaj za kupovinu</button>
+                                    <button type="button" class="btn-cook-suggestion" id="btn-cook-suggestion" data-i18n="cook.cookThis">Kuhaj ovo</button>
+                                    <button type="button" class="btn-cook-shopping" id="btn-cook-shopping" data-i18n="cook.addShop">Dodaj za kupovinu</button>
                                 </div>
                             </div>
                         </div>
@@ -188,13 +200,13 @@
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 5v14"/><path d="M5 12h14"/>
                             </svg>
-                            Dodaj u smočnicu
+                            <span data-i18n="quick.addPantry">Dodaj u smočnicu</span>
                         </button>
                         <button class="btn-quick btn-quick-alt" id="btn-quick-kupovina">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 5v14"/><path d="M5 12h14"/>
                             </svg>
-                            Dodaj na listu
+                            <span data-i18n="quick.addList">Dodaj na listu</span>
                         </button>
                     </div>
                 </section>
@@ -208,13 +220,13 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                                 </svg>
-                                <input type="text" id="search-inventar" placeholder="Pretraži smočnicu..." autocomplete="off">
+                                <input type="text" id="search-inventar" data-i18n-placeholder="search.pantry" placeholder="Pretraži smočnicu..." autocomplete="off">
                             </div>
                             <button class="btn-primary" id="btn-add-inventar">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M12 5v14"/><path d="M5 12h14"/>
                                 </svg>
-                                Dodaj
+                                <span data-i18n="btn.add">Dodaj</span>
                             </button>
                         </div>
                         <div class="categories-grid" id="categories-grid"></div>
@@ -228,13 +240,13 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                                 </svg>
-                                <input type="text" id="search-category-items" placeholder="Pretraži..." autocomplete="off">
+                                <input type="text" id="search-category-items" data-i18n-placeholder="search.short" placeholder="Pretraži..." autocomplete="off">
                             </div>
                             <button class="btn-primary" id="btn-add-category-item">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M12 5v14"/><path d="M5 12h14"/>
                                 </svg>
-                                Dodaj
+                                <span data-i18n="btn.add">Dodaj</span>
                             </button>
                         </div>
                         <div class="items-list" id="inventar-list"></div>
@@ -248,19 +260,19 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                             </svg>
-                            <input type="text" id="search-kupovina" placeholder="Pretraži listu..." autocomplete="off">
+                            <input type="text" id="search-kupovina" data-i18n-placeholder="search.list" placeholder="Pretraži listu..." autocomplete="off">
                         </div>
                         <button class="btn-primary" id="btn-add-kupovina">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 5v14"/><path d="M5 12h14"/>
                             </svg>
-                            Dodaj
+                            <span data-i18n="btn.add">Dodaj</span>
                         </button>
                     </div>
 
                     <div class="shopping-actions" id="shopping-actions" style="display:none;">
-                        <button class="btn-success" id="btn-kupljeno-sve">Kupljeno → smočnica</button>
-                        <button class="btn-danger" id="btn-obrisi-kupljeno">Obriši označeno</button>
+                        <button class="btn-success" id="btn-kupljeno-sve" data-i18n="shop.bought">Kupljeno → smočnica</button>
+                        <button class="btn-danger" id="btn-obrisi-kupljeno" data-i18n="shop.deleteChecked">Obriši označeno</button>
                     </div>
 
                     <div class="items-list" id="kupovina-list">
@@ -269,8 +281,8 @@
                                 <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                             </svg>
-                            <p>Lista za kupovinu je prazna</p>
-                            <span>Dodajte namirnice koje trebate kupiti</span>
+                            <p data-i18n="shop.empty">Lista za kupovinu je prazna</p>
+                            <span data-i18n="shop.emptySub">Dodajte namirnice koje trebate kupiti</span>
                         </div>
                     </div>
                 </section>
@@ -284,13 +296,13 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                                 </svg>
-                                <input type="text" id="search-kuharica" placeholder="Pretraži recepte..." autocomplete="off">
+                                <input type="text" id="search-kuharica" data-i18n-placeholder="search.recipes" placeholder="Pretraži recepte..." autocomplete="off">
                             </div>
                             <button class="btn-primary" id="btn-add-recipe">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M12 5v14"/><path d="M5 12h14"/>
                                 </svg>
-                                Novi
+                                <span data-i18n="btn.new">Novi</span>
                             </button>
                         </div>
                         <div class="cookbook-list" id="cookbook-list"></div>
@@ -302,14 +314,14 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                                 </svg>
-                                Uredi
+                                <span data-i18n="recipe.edit">Uredi</span>
                             </button>
                             <button class="btn-danger" id="btn-delete-recipe">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                                 </svg>
-                                Obriši
+                                <span data-i18n="recipe.delete">Obriši</span>
                             </button>
                         </div>
                         <div class="recipe-card" id="recipe-detail-card"></div>
@@ -318,7 +330,7 @@
                                 <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                             </svg>
-                            Dodaj nedostajuće na listu za kupovinu
+                            <span data-i18n="recipe.addMissing">Dodaj nedostajuće na listu za kupovinu</span>
                         </button>
                     </div>
                 </section>
@@ -342,7 +354,7 @@
                             <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                             <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                         </svg>
-                        Generiraj listu iz plana
+                        <span data-i18n="plan.genList">Generiraj listu iz plana</span>
                     </button>
                 </section>
 
@@ -355,25 +367,25 @@
                                 <path d="m2 16 20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4"/>
                             </svg>
                         </div>
-                        <h3>Čarobni Kuhar</h3>
-                        <p>Predloži recept od namirnica koje imate u smočnici</p>
+                        <h3 data-i18n="ai.title">Čarobni Kuhar</h3>
+                        <p data-i18n="ai.subtitle">Predloži recept od namirnica koje imate u smočnici</p>
                     </div>
 
                     <div class="form-group">
-                        <label for="recipe-preferences">Dodatni zahtjevi (opcionalno)</label>
-                        <input type="text" id="recipe-preferences" placeholder="npr. brzo, vegetarijansko, za djecu..." autocomplete="off">
+                        <label for="recipe-preferences" data-i18n-label="ai.prefs">Dodatni zahtjevi (opcionalno)</label>
+                        <input type="text" id="recipe-preferences" data-i18n-placeholder="ai.prefsPh" placeholder="npr. brzo, vegetarijansko, za djecu..." autocomplete="off">
                     </div>
 
                     <button class="btn-primary btn-full btn-generate" id="btn-generate-recipe">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                         </svg>
-                        Generiraj recept
+                        <span data-i18n="ai.generate">Generiraj recept</span>
                     </button>
 
                     <div id="recipe-loading" style="display:none" class="recipe-loading">
                         <div class="spinner"></div>
-                        <p>Čarobni kuhar razmišlja...</p>
+                        <p data-i18n="ai.thinking">Čarobni kuhar razmišlja...</p>
                     </div>
 
                     <div id="recipe-result" style="display:none" class="recipe-card"></div>
@@ -384,14 +396,14 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                                 </svg>
-                                Spremi u kuharicu
+                                <span data-i18n="ai.save">Spremi u kuharicu</span>
                             </button>
                             <button class="btn-primary btn-full" id="btn-another-recipe">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                                     <path d="M3 3v5h5"/>
                                 </svg>
-                                Drugi recept
+                                <span data-i18n="ai.another">Drugi recept</span>
                             </button>
                         </div>
                     </div>
@@ -404,7 +416,7 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
-                    <span>Početna</span>
+                    <span data-i18n="nav.home">Početna</span>
                     <span class="nav-badge nav-badge-warning" id="pocetna-expiry-count" style="display:none">0</span>
                 </button>
                 <button class="nav-item" data-page="inventar">
@@ -412,7 +424,7 @@
                         <path d="M20 7h-9"/><path d="M14 17H5"/>
                         <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
                     </svg>
-                    <span>Smočnica</span>
+                    <span data-i18n="nav.pantry">Smočnica</span>
                     <span class="nav-badge" id="inventar-count" style="display:none">0</span>
                 </button>
                 <button class="nav-item" data-page="kupovina">
@@ -420,27 +432,27 @@
                         <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                         <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                     </svg>
-                    <span>Kupovina</span>
+                    <span data-i18n="nav.shop">Kupovina</span>
                     <span class="nav-badge" id="kupovina-count" style="display:none">0</span>
                 </button>
                 <button class="nav-item" data-page="kuharica">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                     </svg>
-                    <span>Kuharica</span>
+                    <span data-i18n="nav.cookbook">Kuharica</span>
                     <span class="nav-badge" id="kuharica-count" style="display:none">0</span>
                 </button>
                 <button class="nav-item" data-page="planer">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    <span>Planer</span>
+                    <span data-i18n="nav.planner">Planer</span>
                 </button>
                 <button class="nav-item" data-page="recepti">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                     </svg>
-                    <span>Kuhar</span>
+                    <span data-i18n="nav.chef">Kuhar</span>
                 </button>
             </nav>
         </div>
@@ -454,10 +466,10 @@
                 </div>
                 <form id="item-form">
                     <div class="form-group">
-                        <label for="item-name">Naziv</label>
+                        <label for="item-name" data-i18n-label="modal.name">Naziv</label>
                         <div class="input-with-barcode">
-                            <input type="text" id="item-name" placeholder="npr. Mlijeko" required autocomplete="off">
-                            <button type="button" class="btn-input-barcode" id="btn-scan-barcode" title="Skeniraj barkod" aria-label="Skeniraj barkod">
+                            <input type="text" id="item-name" data-i18n-placeholder="item.namePh" placeholder="npr. Mlijeko" required autocomplete="off">
+                            <button type="button" class="btn-input-barcode" id="btn-scan-barcode" data-i18n-title="barcode.scan" data-i18n-aria="barcode.scan" title="Skeniraj barkod" aria-label="Skeniraj barkod">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
                                     <line x1="7" y1="8" x2="7" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
@@ -468,18 +480,18 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="item-qty">Količina</label>
+                            <label for="item-qty" data-i18n-label="modal.qty">Količina</label>
                             <input type="number" id="item-qty" placeholder="1" min="0.01" step="0.01" required>
                         </div>
                         <div class="form-group">
-                            <label for="item-unit">Jedinica</label>
+                            <label for="item-unit" data-i18n-label="modal.unit">Jedinica</label>
                             <select id="item-unit">
-                                <option value="kom">kom (komad)</option>
+                                <option value="kom" data-i18n="unit.kom">kom (komad)</option>
                                 <option value="kg">kg</option>
                                 <option value="g">g (gram)</option>
                                 <option value="L">L (litar)</option>
                                 <option value="mL">mL</option>
-                                <option value="pak">pak (pakovanje)</option>
+                                <option value="pak" data-i18n="unit.pak">pak (pakovanje)</option>
                                 <option value="vrećica">vrećica</option>
                                 <option value="boca">boca</option>
                                 <option value="kutija">kutija</option>
@@ -488,7 +500,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="item-category">Kategorija</label>
+                        <label for="item-category" data-i18n-label="modal.category">Kategorija</label>
                         <select id="item-category">
                             <option value="Voće i povrće">Voće i povrće</option>
                             <option value="Mlijeko i mliječni">Mlijeko i mliječni</option>
@@ -504,7 +516,7 @@
                         </select>
                     </div>
                     <div class="form-group" id="expiry-group">
-                        <label for="item-expires">Rok trajanja (opcionalno)</label>
+                        <label for="item-expires" data-i18n-label="modal.expiry">Rok trajanja (opcionalno)</label>
                         <input type="date" id="item-expires">
                     </div>
                     <div class="inventory-notice" id="inventory-notice" style="display:none;"></div>
@@ -526,54 +538,54 @@
                 </div>
                 <form id="recipe-form">
                     <div class="form-group">
-                        <label for="recipe-title">Naziv jela *</label>
-                        <input type="text" id="recipe-title" placeholder="npr. Palačinke" required autocomplete="off">
+                        <label for="recipe-title" data-i18n-label="recipe.dishName">Naziv jela *</label>
+                        <input type="text" id="recipe-title" data-i18n-placeholder="recipe.dishPh" placeholder="npr. Palačinke" required autocomplete="off">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="recipe-cat">Kategorija</label>
+                            <label for="recipe-cat" data-i18n-label="recipe.cat">Kategorija</label>
                             <select id="recipe-cat">
-                                <option value="Doručak">Doručak</option>
-                                <option value="Ručak">Ručak</option>
-                                <option value="Večera">Večera</option>
-                                <option value="Desert">Desert</option>
-                                <option value="Predjelo">Predjelo</option>
-                                <option value="Brza jela">Brza jela</option>
-                                <option value="Ostalo" selected>Ostalo</option>
+                                <option value="Doručak" data-i18n="rcat.breakfast">Doručak</option>
+                                <option value="Ručak" data-i18n="rcat.lunch">Ručak</option>
+                                <option value="Večera" data-i18n="rcat.dinner">Večera</option>
+                                <option value="Desert" data-i18n="rcat.dessert">Desert</option>
+                                <option value="Predjelo" data-i18n="rcat.starter">Predjelo</option>
+                                <option value="Brza jela" data-i18n="rcat.quick">Brza jela</option>
+                                <option value="Ostalo" selected data-i18n="rcat.other">Ostalo</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="recipe-diff">Težina</label>
+                            <label for="recipe-diff" data-i18n-label="recipe.diff">Težina</label>
                             <select id="recipe-diff">
-                                <option value="Lagano">Lagano</option>
-                                <option value="Srednje" selected>Srednje</option>
-                                <option value="Teže">Teže</option>
+                                <option value="Lagano" data-i18n="diff.easy">Lagano</option>
+                                <option value="Srednje" selected data-i18n="diff.mid">Srednje</option>
+                                <option value="Teže" data-i18n="diff.hard">Teže</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="recipe-time">Vrijeme</label>
-                            <input type="text" id="recipe-time" placeholder="npr. 30 min" autocomplete="off">
+                            <label for="recipe-time" data-i18n-label="recipe.time">Vrijeme</label>
+                            <input type="text" id="recipe-time" data-i18n-placeholder="recipe.timePh" placeholder="npr. 30 min" autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="recipe-servings">Porcija</label>
-                            <input type="text" id="recipe-servings" placeholder="npr. 4 osobe" autocomplete="off">
+                            <label for="recipe-servings" data-i18n-label="recipe.servings">Porcija</label>
+                            <input type="text" id="recipe-servings" data-i18n-placeholder="recipe.servingsPh" placeholder="npr. 4 osobe" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Sastojci *</label>
+                        <label data-i18n-label="recipe.ingredients">Sastojci *</label>
                         <div id="ingredients-rows"></div>
-                        <button type="button" class="btn-add-row" id="btn-add-ingredient">+ Dodaj sastojak</button>
+                        <button type="button" class="btn-add-row" id="btn-add-ingredient" data-i18n="recipe.addIng">+ Dodaj sastojak</button>
                     </div>
                     <div class="form-group">
-                        <label>Koraci pripreme *</label>
+                        <label data-i18n-label="recipe.steps">Koraci pripreme *</label>
                         <div id="steps-rows"></div>
-                        <button type="button" class="btn-add-row" id="btn-add-step">+ Dodaj korak</button>
+                        <button type="button" class="btn-add-row" id="btn-add-step" data-i18n="recipe.addStep">+ Dodaj korak</button>
                     </div>
                     <div class="form-group">
-                        <label for="recipe-tip-input">Savjet (opcionalno)</label>
-                        <input type="text" id="recipe-tip-input" placeholder="npr. Poslužiti toplo..." autocomplete="off">
+                        <label for="recipe-tip-input" data-i18n-label="recipe.tip">Savjet (opcionalno)</label>
+                        <input type="text" id="recipe-tip-input" data-i18n-placeholder="recipe.tipPh" placeholder="npr. Poslužiti toplo..." autocomplete="off">
                     </div>
                     <input type="hidden" id="recipe-edit-id">
                     <button type="submit" class="btn-primary btn-full">
@@ -587,21 +599,21 @@
         <div class="modal-overlay" id="modal-consume-overlay">
             <div class="modal modal-small">
                 <div class="modal-header">
-                    <h2>Potrošeno</h2>
+                    <h2 data-i18n="consume.title">Potrošeno</h2>
                     <button class="btn-close" id="btn-close-consume">&times;</button>
                 </div>
                 <form id="consume-form">
                     <p id="consume-info"></p>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="consume-qty">Koliko ste potrošili?</label>
+                            <label for="consume-qty" data-i18n-label="consume.q">Koliko ste potrošili?</label>
                             <input type="number" id="consume-qty" min="0.01" step="0.01" required>
                         </div>
                     </div>
                     <input type="hidden" id="consume-id">
                     <div class="form-row">
-                        <button type="submit" class="btn-primary btn-full">Potroši</button>
-                        <button type="button" class="btn-danger btn-full" id="btn-remove-all">Ukloni sve</button>
+                        <button type="submit" class="btn-primary btn-full" data-i18n="consume.use">Potroši</button>
+                        <button type="button" class="btn-danger btn-full" id="btn-remove-all" data-i18n="consume.removeAll">Ukloni sve</button>
                     </div>
                 </form>
             </div>
@@ -616,19 +628,19 @@
                 <form id="meal-form">
                     <p id="meal-modal-info" style="font-size:13px;color:var(--gray-500);margin-bottom:16px;"></p>
                     <div class="form-group">
-                        <label for="meal-recipe-select">Odaberi recept iz kuharice</label>
+                        <label for="meal-recipe-select" data-i18n-label="meal.pickRecipe">Odaberi recept iz kuharice</label>
                         <select id="meal-recipe-select">
-                            <option value="">-- Bez recepta --</option>
+                            <option value="" data-i18n="meal.noRecipe">-- Bez recepta --</option>
                         </select>
                     </div>
-                    <div class="meal-divider">ili</div>
+                    <div class="meal-divider" data-i18n="meal.or">ili</div>
                     <div class="form-group">
-                        <label for="meal-custom-title">Upiši vlastiti obrok</label>
-                        <input type="text" id="meal-custom-title" placeholder="npr. Ručak vani, Ostatci..." autocomplete="off">
+                        <label for="meal-custom-title" data-i18n-label="meal.custom">Upiši vlastiti obrok</label>
+                        <input type="text" id="meal-custom-title" data-i18n-placeholder="meal.customPh" placeholder="npr. Ručak vani, Ostatci..." autocomplete="off">
                     </div>
                     <input type="hidden" id="meal-date">
                     <input type="hidden" id="meal-type">
-                    <button type="submit" class="btn-primary btn-full">Dodaj obrok</button>
+                    <button type="submit" class="btn-primary btn-full" data-i18n="meal.submit">Dodaj obrok</button>
                 </form>
             </div>
         </div>
@@ -637,16 +649,16 @@
         <div class="modal-overlay" id="modal-bulk-shopping-overlay">
             <div class="modal modal-bulk-shopping">
                 <div class="modal-header">
-                    <h2>Dodaj na listu</h2>
+                    <h2 data-i18n="bulk.title">Dodaj na listu</h2>
                     <button type="button" class="btn-close" id="btn-close-bulk-shopping">&times;</button>
                 </div>
                 <div class="modal-body-bulk">
-                    <p class="bulk-shopping-hint">Jedna ili više namirnica — ispunjene retke šaljemo odjednom (prazni se preskaču). Najviše 40 stavki.</p>
+                    <p class="bulk-shopping-hint" data-i18n="bulk.hint">Jedna ili više namirnica — ispunjene retke šaljemo odjednom (prazni se preskaču). Najviše 40 stavki.</p>
                     <div class="bulk-shopping-rows-wrap">
                         <div id="bulk-shopping-rows"></div>
                     </div>
-                    <button type="button" class="btn-bulk-add-row" id="btn-bulk-shopping-add-row">+ Još jedan red</button>
-                    <button type="button" class="btn-primary btn-full" id="btn-bulk-shopping-save">Dodaj sve na listu</button>
+                    <button type="button" class="btn-bulk-add-row" id="btn-bulk-shopping-add-row" data-i18n="bulk.addRow">+ Još jedan red</button>
+                    <button type="button" class="btn-primary btn-full" id="btn-bulk-shopping-save" data-i18n="bulk.save">Dodaj sve na listu</button>
                 </div>
             </div>
         </div>
@@ -656,12 +668,13 @@
             <div class="barcode-scanner-panel">
                 <video id="barcode-video" playsinline muted></video>
                 <div class="barcode-scanner-frame" aria-hidden="true"></div>
-                <p class="barcode-scanner-hint">Namjesti barkod u okvir · podaci o proizvodu: Open Food Facts</p>
-                <button type="button" class="btn-barcode-cancel" id="btn-barcode-cancel">Odustani</button>
+                <p class="barcode-scanner-hint" data-i18n="barcode.hint">Namjesti barkod u okvir · podaci o proizvodu: Open Food Facts</p>
+                <button type="button" class="btn-barcode-cancel" id="btn-barcode-cancel" data-i18n="barcode.cancel">Odustani</button>
             </div>
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

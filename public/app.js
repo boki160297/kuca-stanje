@@ -18,6 +18,38 @@ const CATEGORY_COLORS = {
     'Slatkiši': '#fce7f3', 'Smrznuto': '#e0f2fe', 'Higijena': '#f0fdf4', 'Ostalo': '#f3f4f6'
 };
 
+const PANTRY_CATEGORY_KEYS = {
+    'Voće i povrće': 'cat.produce',
+    'Mlijeko i mliječni': 'cat.dairy',
+    'Meso i riba': 'cat.meat',
+    'Pekara': 'cat.bakery',
+    'Piće': 'cat.drink',
+    'Začini': 'cat.spice',
+    'Konzerve': 'cat.canned',
+    'Slatkiši': 'cat.sweets',
+    'Smrznuto': 'cat.frozen',
+    'Higijena': 'cat.hygiene',
+    'Ostalo': 'cat.other'
+};
+
+const PANTRY_CATEGORY_ORDER = Object.keys(PANTRY_CATEGORY_KEYS);
+
+const RECIPE_CAT_MAP = {
+    'Doručak': 'rcat.breakfast',
+    'Ručak': 'rcat.lunch',
+    'Večera': 'rcat.dinner',
+    'Desert': 'rcat.dessert',
+    'Predjelo': 'rcat.starter',
+    'Brza jela': 'rcat.quick',
+    'Ostalo': 'rcat.other'
+};
+
+const RECIPE_DIFF_MAP = {
+    'Lagano': 'diff.easy',
+    'Srednje': 'diff.mid',
+    'Teže': 'diff.hard'
+};
+
 // ---- State ----
 let inventory = [];
 let shoppingList = [];
@@ -39,11 +71,10 @@ function getMonday(d) {
 }
 let planerWeekStart = getMonday(new Date());
 
-const DAY_SHORT = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
 const MEAL_TYPES = [
-    { id: 'dorucak', label: 'Doručak', icon: '🌅' },
-    { id: 'rucak', label: 'Ručak', icon: '☀️' },
-    { id: 'vecera', label: 'Večera', icon: '🌙' }
+    { id: 'dorucak', icon: '🌅' },
+    { id: 'rucak', icon: '☀️' },
+    { id: 'vecera', icon: '🌙' }
 ];
 
 // ---- API Helper ----
@@ -59,7 +90,11 @@ async function api(method, path, body) {
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(`/api${path}`, opts);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Greška na serveru');
+    if (!res.ok) {
+        const raw = data && data.error;
+        const msg = I18N.translateApiError(raw) || raw || I18N.t('errors.server');
+        throw new Error(msg);
+    }
     return data;
 }
 
@@ -137,10 +172,52 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-const BULK_ITEM_CATEGORIES = [
-    'Voće i povrće', 'Mlijeko i mliječni', 'Meso i riba', 'Pekara', 'Piće',
-    'Začini', 'Konzerve', 'Slatkiši', 'Smrznuto', 'Higijena', 'Ostalo'
-];
+function iLocale() {
+    return I18N.getLang() === 'en' ? 'en-GB' : 'hr-HR';
+}
+
+function categoryLabel(hr) {
+    const k = PANTRY_CATEGORY_KEYS[hr];
+    return k ? I18N.t(k) : hr;
+}
+
+function recipeCategoryLabel(cat) {
+    if (!cat) return categoryLabel('Ostalo');
+    const key = RECIPE_CAT_MAP[cat];
+    return key ? I18N.t(key) : cat;
+}
+
+function recipeDifficultyLabel(d) {
+    if (!d) return d;
+    const key = RECIPE_DIFF_MAP[d];
+    return key ? I18N.t(key) : d;
+}
+
+function pageTitle(page) {
+    const k = 'page.' + page;
+    const s = I18N.t(k);
+    return s === k ? page : s;
+}
+
+function mealTypeLabel(id) {
+    return I18N.t('meal.' + id);
+}
+
+function getDayShorts() {
+    return ['day.mon', 'day.tue', 'day.wed', 'day.thu', 'day.fri', 'day.sat', 'day.sun'].map(key => I18N.t(key));
+}
+
+function fillItemCategorySelect() {
+    const sel = document.getElementById('item-category');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = PANTRY_CATEGORY_ORDER.map(hr =>
+        `<option value="${escapeHtml(hr)}">${escapeHtml(categoryLabel(hr))}</option>`
+    ).join('');
+    if (current && PANTRY_CATEGORY_ORDER.includes(current)) sel.value = current;
+}
+
+const BULK_ITEM_CATEGORIES = PANTRY_CATEGORY_ORDER;
 const BULK_ITEM_UNITS = [
     ['kom', 'kom'], ['kg', 'kg'], ['g', 'g'], ['L', 'L'], ['mL', 'mL'],
     ['pak', 'pak'], ['vrećica', 'vrećica'], ['boca', 'boca'], ['kutija', 'kutija'], ['šolja', 'šolja']
@@ -148,7 +225,7 @@ const BULK_ITEM_UNITS = [
 
 function bulkCategoryOptionsHtml(selected = 'Ostalo') {
     return BULK_ITEM_CATEGORIES.map(c =>
-        `<option value="${escapeHtml(c)}"${c === selected ? ' selected' : ''}>${escapeHtml(c)}</option>`
+        `<option value="${escapeHtml(c)}"${c === selected ? ' selected' : ''}>${escapeHtml(categoryLabel(c))}</option>`
     ).join('');
 }
 
@@ -165,17 +242,17 @@ function getExpiryStatus(expiresAt) {
     const expiry = new Date(expiresAt);
     expiry.setHours(0, 0, 0, 0);
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { label: `Isteklo prije ${Math.abs(diffDays)} dana`, class: 'expired', days: diffDays };
-    if (diffDays === 0) return { label: 'Ističe danas!', class: 'expiring-today', days: 0 };
-    if (diffDays <= 3) return { label: `Ističe za ${diffDays} dana`, class: 'expiring-soon', days: diffDays };
-    if (diffDays <= 7) return { label: `Ističe za ${diffDays} dana`, class: 'expiring-week', days: diffDays };
+    if (diffDays < 0) return { label: I18N.t('expiry.expired', { n: Math.abs(diffDays) }), class: 'expired', days: diffDays };
+    if (diffDays === 0) return { label: I18N.t('expiry.today'), class: 'expiring-today', days: 0 };
+    if (diffDays <= 3) return { label: I18N.t('expiry.soon', { n: diffDays }), class: 'expiring-soon', days: diffDays };
+    if (diffDays <= 7) return { label: I18N.t('expiry.soon', { n: diffDays }), class: 'expiring-week', days: diffDays };
     return { label: formatDate(expiresAt), class: 'expiry-ok', days: diffDays };
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('hr-HR', { day: 'numeric', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString(iLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function findInventoryMatch(ingredientName) {
@@ -278,6 +355,9 @@ async function addMissingIngredientsToShopping(recipe, { refresh = true } = {}) 
 }
 
 function sastojakRijec(n) {
+    if (I18N.getLang() === 'en') {
+        return n === 1 ? I18N.t('word.ing1') : I18N.t('word.ing5');
+    }
     const x = Math.abs(n) % 100;
     const z = x % 10;
     if (x >= 11 && x <= 14) return 'sastojaka';
@@ -287,12 +367,18 @@ function sastojakRijec(n) {
 }
 
 function namirniceListaMsg(n) {
+    if (I18N.getLang() === 'en') {
+        return n === 1 ? I18N.t('msg.listAddedOne') : I18N.t('msg.listAddedMany', { n });
+    }
     if (n === 1) return '1 namirnica dodana na listu za kupovinu.';
     if (n >= 2 && n <= 4) return `${n} namirnice dodane na listu za kupovinu.`;
     return `${n} namirnica dodano na listu za kupovinu.`;
 }
 
 function vecNaListiMsg(n) {
+    if (I18N.getLang() === 'en') {
+        return n === 1 ? I18N.t('msg.alreadyOne') : I18N.t('msg.alreadyMany', { n });
+    }
     if (n === 1) return 'Jedna je već bila na listi.';
     return `${n} ih je već bilo na listi.`;
 }
@@ -333,7 +419,7 @@ function pickTodayCookSuggestion() {
 
 function getGreetingDate() {
     const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-    const d = new Date().toLocaleDateString('hr-HR', opts);
+    const d = new Date().toLocaleDateString(iLocale(), opts);
     return d.charAt(0).toUpperCase() + d.slice(1);
 }
 
@@ -463,15 +549,6 @@ function renderAll() {
 // =====================
 //   NAVIGATION
 // =====================
-const PAGE_TITLES = {
-    pocetna: 'Moja Smočnica',
-    inventar: 'Smočnica',
-    kupovina: 'Kupovina',
-    kuharica: 'Kuharica',
-    planer: 'Planer obroka',
-    recepti: 'Čarobni Kuhar'
-};
-
 function navigateTo(page) {
     activePage = page;
 
@@ -483,14 +560,16 @@ function navigateTo(page) {
 
     const hasSubView = (page === 'inventar' && selectedCategory) || (page === 'kuharica' && selectedRecipeId);
     if (page === 'inventar' && selectedCategory) {
-        topBarTitle.textContent = selectedCategory === '__all__' ? '📋 Sve namirnice' : `${CATEGORY_ICONS[selectedCategory] || '📦'} ${selectedCategory}`;
+        topBarTitle.textContent = selectedCategory === '__all__'
+            ? `📋 ${I18N.t('inv.all')}`
+            : `${CATEGORY_ICONS[selectedCategory] || '📦'} ${categoryLabel(selectedCategory)}`;
         btnBack.style.display = '';
     } else if (page === 'kuharica' && selectedRecipeId) {
         const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
-        topBarTitle.textContent = r ? r.title : 'Recept';
+        topBarTitle.textContent = r ? r.title : I18N.t('page.recipe');
         btnBack.style.display = '';
     } else {
-        topBarTitle.textContent = PAGE_TITLES[page] || page;
+        topBarTitle.textContent = pageTitle(page);
         btnBack.style.display = 'none';
     }
 
@@ -512,12 +591,12 @@ btnBack.addEventListener('click', () => {
     if (activePage === 'inventar' && selectedCategory) {
         selectedCategory = null;
         showCategoriesView();
-        topBarTitle.textContent = PAGE_TITLES.inventar;
+        topBarTitle.textContent = pageTitle('inventar');
         btnBack.style.display = 'none';
     } else if (activePage === 'kuharica' && selectedRecipeId) {
         selectedRecipeId = null;
         showCookbookListView();
-        topBarTitle.textContent = PAGE_TITLES.kuharica;
+        topBarTitle.textContent = pageTitle('kuharica');
         btnBack.style.display = 'none';
     }
 });
@@ -557,14 +636,12 @@ function renderCookSuggestion() {
     const pick = pickTodayCookSuggestion();
 
     if (pick.type === 'empty') {
-        cookSuggestionHintText.textContent =
-            'Dodaj recept u kuharicu (ručno ili iz Čarobnog kuhara) pa ćemo predložiti jelo prema tvojoj smočnici.';
+        cookSuggestionHintText.textContent = I18N.t('cook.hint.empty');
         cookSuggestionHint.style.display = '';
         return;
     }
     if (pick.type === 'no_overlap') {
-        cookSuggestionHintText.textContent =
-            'Još nema prijedloga — u tvojim receptima nema namirnica koje trenutno imaš u smočnici. Dodaj namirnice ili prilagodi recepte.';
+        cookSuggestionHintText.textContent = I18N.t('cook.hint.noverlap');
         cookSuggestionHint.style.display = '';
         return;
     }
@@ -572,13 +649,13 @@ function renderCookSuggestion() {
     const title = escapeHtml(pick.recipe.title);
     let html;
     if (pick.missingCount === 0) {
-        html = `Imaš sve sastojke za <strong>${title}</strong> — možeš krenuti odmah.`;
+        html = I18N.t('suggest.haveAll', { title });
     } else if (pick.missingCount === 1) {
-        html = `Možeš kuhati <strong>${title}</strong> — u smočnici ti još fali <strong>1 sastojak</strong>.`;
+        html = I18N.t('suggest.one', { title });
     } else {
         const w = sastojakRijec(pick.missingCount);
-        const samo = pick.missingCount <= 4 ? 'samo ' : '';
-        html = `Možeš kuhati <strong>${title}</strong> — fale ti još ${samo}<strong>${pick.missingCount}</strong> ${w}.`;
+        const only = pick.missingCount <= 4 ? I18N.t('word.only') : '';
+        html = I18N.t('suggest.many', { title, only, n: pick.missingCount, w });
     }
     cookSuggestionMsg.innerHTML = html;
     cookSuggestionEl.dataset.recipeId = String(pick.recipe.id);
@@ -605,7 +682,7 @@ function renderExpiryWarnings() {
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        ${warnings.length} namirnica ističe uskoro
+        ${I18N.t('expiry.panel', { n: warnings.length })}
     </div>`;
 
     function renderGroup(items) {
@@ -621,14 +698,14 @@ function renderExpiryWarnings() {
     renderGroup(urgent);
     if (soon.length > 0) {
         html += `<div class="expiry-item" style="font-size:11px;font-weight:700;color:var(--gray-500);background:var(--gray-100);">
-            Za 4-7 dana (${soon.length})
+            ${I18N.t('expiry.group', { n: soon.length })}
         </div>`;
         renderGroup(soon);
     }
 
     html += `<button class="expiry-action-btn" id="btn-expiry-cook">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-        Iskoristi u receptu
+        ${escapeHtml(I18N.t('expiry.cook'))}
     </button>`;
 
     html += '</div>';
@@ -639,7 +716,7 @@ function renderExpiryWarnings() {
         btnCook.addEventListener('click', () => {
             const items = urgent.length > 0 ? urgent : soon;
             const expiringNames = items.slice(0, 5).map(w => w.name).join(', ');
-            recipePreferences.value = `Koristi ove namirnice jer uskoro ističu: ${expiringNames}`;
+            recipePreferences.value = I18N.t('pref.expiry') + expiringNames;
             navigateTo('recepti');
         });
     }
@@ -672,9 +749,9 @@ if (btnCookShopping && cookSuggestionEl) {
             if (added > 0) parts.push(namirniceListaMsg(added));
             if (skipped > 0) parts.push(vecNaListiMsg(skipped));
             if (parts.length) alert(parts.join(' '));
-            else alert('Ništa nije dodano — sve je već na listi ili u smočnici.');
+            else alert(I18N.t('msg.cookNothing'));
         } catch (e) {
-            alert(e.message || 'Greška');
+            alert(e.message || I18N.t('errors.generic'));
         } finally {
             btnCookShopping.disabled = false;
         }
@@ -687,12 +764,13 @@ if (btnCookShopping && cookSuggestionEl) {
 function renderPlaner() {
     const end = new Date(planerWeekStart);
     end.setDate(end.getDate() + 6);
-    const weekLabel = `${planerWeekStart.getDate()}. - ${end.getDate()}. ${end.toLocaleDateString('hr-HR', { month: 'short' })}`;
+    const weekLabel = `${planerWeekStart.getDate()}. - ${end.getDate()}. ${end.toLocaleDateString(iLocale(), { month: 'short' })}`;
     document.getElementById('planer-week-label').textContent = weekLabel;
 
     const grid = document.getElementById('planer-grid');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const dayShorts = getDayShorts();
 
     let html = '';
     for (let i = 0; i < 7; i++) {
@@ -703,7 +781,7 @@ function renderPlaner() {
 
         html += `<div class="planer-day ${isToday ? 'planer-today' : ''}">
             <div class="planer-day-header">
-                <span class="planer-day-name">${DAY_SHORT[i]}</span>
+                <span class="planer-day-name">${escapeHtml(dayShorts[i])}</span>
                 <span class="planer-day-date">${date.getDate()}.${date.getMonth() + 1}.</span>
             </div>
             <div class="planer-meals">`;
@@ -714,7 +792,7 @@ function renderPlaner() {
                 return mDate === dateStr && m.meal_type === meal.id;
             });
             if (planned) {
-                const title = planned.recipe_title || planned.custom_title || 'Obrok';
+                const title = planned.recipe_title || planned.custom_title || I18N.t('meal.fallback');
                 html += `<div class="planer-meal filled" title="${escapeHtml(title)}">
                     <span class="meal-icon">${meal.icon}</span>
                     <span class="meal-name">${escapeHtml(title)}</span>
@@ -723,7 +801,7 @@ function renderPlaner() {
             } else {
                 html += `<div class="planer-meal empty" data-date="${dateStr}" data-type="${meal.id}">
                     <span class="meal-icon">${meal.icon}</span>
-                    <span class="meal-add">+ ${meal.label}</span>
+                    <span class="meal-add">${escapeHtml(I18N.t('meal.addShort', { label: mealTypeLabel(meal.id) }))}</span>
                 </div>`;
             }
         }
@@ -768,16 +846,15 @@ const mealRecipeSelect = document.getElementById('meal-recipe-select');
 const mealCustomTitle = document.getElementById('meal-custom-title');
 
 function openMealModal(dateStr, mealType) {
-    const mealLabel = MEAL_TYPES.find(m => m.id === mealType)?.label || mealType;
     const dateObj = new Date(dateStr + 'T00:00:00');
-    const dayName = dateObj.toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const dayName = dateObj.toLocaleDateString(iLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
 
-    document.getElementById('meal-modal-title').textContent = `Dodaj ${mealLabel.toLowerCase()}`;
+    document.getElementById('meal-modal-title').textContent = I18N.t('meal.addTitle.' + mealType);
     document.getElementById('meal-modal-info').textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
     document.getElementById('meal-date').value = dateStr;
     document.getElementById('meal-type').value = mealType;
 
-    mealRecipeSelect.innerHTML = '<option value="">-- Bez recepta --</option>';
+    mealRecipeSelect.innerHTML = `<option value="">${escapeHtml(I18N.t('meal.noRecipe'))}</option>`;
     cookbookRecipes.forEach(r => {
         mealRecipeSelect.innerHTML += `<option value="${r.id}">${escapeHtml(r.title)}</option>`;
     });
@@ -799,7 +876,7 @@ mealForm.addEventListener('submit', async (e) => {
     const custom_title = mealCustomTitle.value.trim() || null;
 
     if (!recipe_id && !custom_title) {
-        alert('Odaberite recept ili unesite naziv obroka.');
+        alert(I18N.t('meal.pickOrCustom'));
         return;
     }
 
@@ -814,7 +891,7 @@ mealForm.addEventListener('submit', async (e) => {
 document.getElementById('btn-planer-shopping').addEventListener('click', async () => {
     const recipeIds = mealPlan.filter(m => m.recipe_id).map(m => m.recipe_id);
     if (recipeIds.length === 0) {
-        alert('Nema planiranih recepata za ovu sedmicu.');
+        alert(I18N.t('plan.noRecipes'));
         return;
     }
 
@@ -839,11 +916,11 @@ document.getElementById('btn-planer-shopping').addEventListener('click', async (
     });
 
     if (missing.length === 0) {
-        alert('Imate sve sastojke ili su već na listi!');
+        alert(I18N.t('plan.haveAll'));
         return;
     }
 
-    if (!confirm(`Dodati ${missing.length} namirnica na listu za kupovinu?`)) return;
+    if (!confirm(I18N.t('plan.confirmAdd', { n: missing.length }))) return;
 
     let added = 0;
     for (const ing of missing) {
@@ -854,7 +931,7 @@ document.getElementById('btn-planer-shopping').addEventListener('click', async (
     }
 
     await loadData();
-    alert(`${added} namirnica dodano na listu za kupovinu!`);
+    alert(namirniceListaMsg(added));
 });
 
 // =====================
@@ -904,16 +981,18 @@ function showItemsView(category) {
     inventarItemsView.style.display = '';
     searchCategoryItems.value = '';
 
-    topBarTitle.textContent = `${CATEGORY_ICONS[category] || '📦'} ${category}`;
+    topBarTitle.textContent = category === '__all__'
+        ? `📋 ${I18N.t('inv.all')}`
+        : `${CATEGORY_ICONS[category] || '📦'} ${categoryLabel(category)}`;
     btnBack.style.display = '';
 
-    const items = inventory.filter(i => i.category === category);
+    const items = category === '__all__' ? inventory.slice() : inventory.filter(i => i.category === category);
     const icon = CATEGORY_ICONS[category] || '📦';
     categoryViewHeader.innerHTML = `
         <span class="category-view-icon">${icon}</span>
         <div class="category-view-info">
-            <span class="category-view-name">${escapeHtml(category)}</span>
-            <span class="category-view-count">${items.length} namirnica</span>
+            <span class="category-view-name">${escapeHtml(categoryLabel(category))}</span>
+            <span class="category-view-count">${items.length} ${I18N.t('inv.items')}</span>
         </div>
     `;
 
@@ -935,8 +1014,8 @@ function renderCategoriesGrid() {
                     <path d="M20 7h-9"/><path d="M14 17H5"/>
                     <circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
                 </svg>
-                <p>Inventar je prazan</p>
-                <span>Dodajte prvu namirnicu klikom na "Dodaj"</span>
+                <p>${escapeHtml(I18N.t('inv.empty'))}</p>
+                <span>${escapeHtml(I18N.t('inv.emptySub'))}</span>
             </div>`;
         return;
     }
@@ -946,7 +1025,7 @@ function renderCategoriesGrid() {
     if (categories.length > 1) {
         html += `<div class="category-card category-card-all" data-cat="__all__">
             <span class="category-card-icon">📋</span>
-            <span class="category-card-name">Sve namirnice</span>
+            <span class="category-card-name">${escapeHtml(I18N.t('inv.all'))}</span>
             <span class="category-card-count">${inventory.length}</span>
         </div>`;
     }
@@ -955,7 +1034,7 @@ function renderCategoriesGrid() {
         const icon = CATEGORY_ICONS[cat] || '📦';
         html += `<div class="category-card" data-cat="${escapeHtml(cat)}">
             <span class="category-card-icon">${icon}</span>
-            <span class="category-card-name">${escapeHtml(cat)}</span>
+            <span class="category-card-name">${escapeHtml(categoryLabel(cat))}</span>
             <span class="category-card-count">${categoryCounts[cat]}</span>
         </div>`;
     });
@@ -981,12 +1060,12 @@ function renderCategoryItems() {
 
     if (selectedCategory === '__all__') {
         items = inventory.slice();
-        topBarTitle.textContent = '📋 Sve namirnice';
+        topBarTitle.textContent = `📋 ${I18N.t('inv.all')}`;
         categoryViewHeader.innerHTML = `
             <span class="category-view-icon">📋</span>
             <div class="category-view-info">
-                <span class="category-view-name">Sve namirnice</span>
-                <span class="category-view-count">${inventory.length} namirnica</span>
+                <span class="category-view-name">${escapeHtml(I18N.t('inv.all'))}</span>
+                <span class="category-view-count">${inventory.length} ${I18N.t('inv.items')}</span>
             </div>
         `;
     } else {
@@ -1000,8 +1079,8 @@ function renderCategoryItems() {
     if (items.length === 0) {
         inventarList.innerHTML = `
             <div class="empty-state">
-                <p>${search ? 'Nema rezultata' : 'Nema namirnica'}</p>
-                <span>${search ? 'Pokušajte drugi pojam' : 'Dodajte namirnicu klikom na "Dodaj"'}</span>
+                <p>${search ? escapeHtml(I18N.t('empty.search')) : escapeHtml(I18N.t('empty.none'))}</p>
+                <span>${search ? escapeHtml(I18N.t('empty.tryOther')) : escapeHtml(I18N.t('empty.addHint'))}</span>
             </div>`;
         return;
     }
@@ -1023,8 +1102,8 @@ searchInventar.addEventListener('input', () => {
         if (items.length === 0) {
             inventarSearchResults.innerHTML = `
                 <div class="empty-state">
-                    <p>Nema rezultata</p>
-                    <span>Pokušajte drugi pojam za pretragu</span>
+                    <p>${escapeHtml(I18N.t('empty.search'))}</p>
+                    <span>${escapeHtml(I18N.t('empty.trySearch'))}</span>
                 </div>`;
         } else {
             items.sort((a, b) => a.name.localeCompare(b.name));
@@ -1052,7 +1131,7 @@ function bindSearchResultActions() {
     });
     inventarSearchResults.querySelectorAll('.btn-icon.delete').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!confirm('Obrisati ovu namirnicu iz smočnice?')) return;
+            if (!confirm(I18N.t('confirm.deletePantry'))) return;
             try {
                 await api('DELETE', `/inventory/${btn.dataset.id}`);
                 inventory = inventory.filter(i => i.id != btn.dataset.id);
@@ -1076,21 +1155,21 @@ function renderInventoryCard(item) {
         <div class="item-icon" style="background:${color}">${icon}</div>
         <div class="item-info">
             <div class="item-name">${escapeHtml(item.name)}</div>
-            <div class="item-meta">${item.category}${expiryBadge}</div>
+            <div class="item-meta">${escapeHtml(categoryLabel(item.category))}${expiryBadge}</div>
         </div>
         <div class="item-qty-badge">${formatQty(item.quantity)} ${item.unit}</div>
         <div class="item-actions">
-            <button class="btn-icon consume" title="Potroši" data-id="${item.id}">
+            <button class="btn-icon consume" title="${escapeHtml(I18N.t('title.consume'))}" data-id="${item.id}">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M5 12h14"/>
                 </svg>
             </button>
-            <button class="btn-icon edit" title="Uredi" data-id="${item.id}">
+            <button class="btn-icon edit" title="${escapeHtml(I18N.t('title.edit'))}" data-id="${item.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                 </svg>
             </button>
-            <button class="btn-icon delete" title="Obriši" data-id="${item.id}">
+            <button class="btn-icon delete" title="${escapeHtml(I18N.t('title.delete'))}" data-id="${item.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -1109,7 +1188,7 @@ function bindInventoryActions() {
     });
     inventarList.querySelectorAll('.btn-icon.delete').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!confirm('Obrisati ovu namirnicu iz smočnice?')) return;
+            if (!confirm(I18N.t('confirm.deletePantry'))) return;
             try {
                 await api('DELETE', `/inventory/${btn.dataset.id}`);
                 inventory = inventory.filter(i => i.id != btn.dataset.id);
@@ -1137,8 +1216,8 @@ function renderShoppingList() {
                     <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
                     <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
                 </svg>
-                <p>${search ? 'Nema rezultata' : 'Lista za kupovinu je prazna'}</p>
-                <span>${search ? 'Pokušajte drugi pojam' : 'Dodajte namirnice koje trebate kupiti'}</span>
+                <p>${search ? escapeHtml(I18N.t('empty.search')) : escapeHtml(I18N.t('shop.empty'))}</p>
+                <span>${search ? escapeHtml(I18N.t('empty.tryOther')) : escapeHtml(I18N.t('shop.emptySub'))}</span>
             </div>`;
         return;
     }
@@ -1157,7 +1236,7 @@ function renderShoppingCard(item) {
     const inInventory = inventory.find(i => i.name.toLowerCase() === item.name.toLowerCase());
     let hint = '';
     if (inInventory) {
-        hint = `<div class="inventory-hint">Imate: ${formatQty(inInventory.quantity)} ${inInventory.unit}</div>`;
+        hint = `<div class="inventory-hint">${escapeHtml(I18N.t('shop.have'))} ${formatQty(inInventory.quantity)} ${inInventory.unit}</div>`;
     }
     return `
     <div class="item-card ${item.checked ? 'checked' : ''}" data-id="${item.id}">
@@ -1165,16 +1244,16 @@ function renderShoppingCard(item) {
         <div class="item-icon" style="background:${color}">${icon}</div>
         <div class="item-info">
             <div class="item-name">${escapeHtml(item.name)}</div>
-            <div class="item-meta">${formatQty(item.quantity)} ${item.unit} · ${item.category}</div>
+            <div class="item-meta">${formatQty(item.quantity)} ${item.unit} · ${escapeHtml(categoryLabel(item.category))}</div>
         </div>
         ${hint}
         <div class="item-actions">
-            <button class="btn-icon edit" title="Uredi" data-id="${item.id}">
+            <button class="btn-icon edit" title="${escapeHtml(I18N.t('title.edit'))}" data-id="${item.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                 </svg>
             </button>
-            <button class="btn-icon delete" title="Obriši" data-id="${item.id}">
+            <button class="btn-icon delete" title="${escapeHtml(I18N.t('title.delete'))}" data-id="${item.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -1213,23 +1292,23 @@ function bindShoppingActions() {
 document.getElementById('btn-kupljeno-sve').addEventListener('click', async () => {
     const checkedItems = shoppingList.filter(i => i.checked);
     if (checkedItems.length === 0) {
-        alert('Prvo označite kupljene namirnice (kliknite kvačicu).');
+        alert(I18N.t('shop.markBoughtFirst'));
         return;
     }
     try {
         const result = await api('POST', '/shopping/buy-checked');
         await loadData();
-        alert(`${result.moved} namirnica dodano u inventar!`);
+        alert(I18N.t('shop.moved', { n: result.moved }));
     } catch (err) { alert(err.message); }
 });
 
 document.getElementById('btn-obrisi-kupljeno').addEventListener('click', async () => {
     const checkedItems = shoppingList.filter(i => i.checked);
     if (checkedItems.length === 0) {
-        alert('Nema označenih namirnica za brisanje.');
+        alert(I18N.t('shop.noneCheckedDelete'));
         return;
     }
-    if (!confirm(`Obrisati ${checkedItems.length} označenih namirnica s liste?`)) return;
+    if (!confirm(I18N.t('shop.confirmDeleteChecked', { n: checkedItems.length }))) return;
     try {
         await api('DELETE', '/shopping/checked');
         shoppingList = shoppingList.filter(i => !i.checked);
@@ -1289,23 +1368,23 @@ function parseOffQuantity(str) {
 async function fetchOpenFoodFactsProduct(barcode) {
     const url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Mreža');
+    if (!res.ok) throw new Error(I18N.t('errors.network'));
     return res.json();
 }
 
 function applyOpenFoodProductToForm(product, barcode) {
     if (!product) {
-        alert(`Proizvod nije u bazi Open Food Facts (barkod ${barcode}). Upiši naziv ručno.`);
+        alert(I18N.t('barcode.notInDb', { code: barcode }));
         itemName.value = '';
-        itemName.placeholder = `Barkod: ${barcode}`;
+        itemName.placeholder = I18N.t('item.barcodePh', { code: barcode });
         itemQty.value = 1;
         itemUnit.value = 'kom';
         itemName.focus();
         return;
     }
     const name = (product.product_name_hr || product.product_name || product.generic_name_hr || product.generic_name || '').trim();
-    itemName.value = name || `Proizvod ${barcode}`;
-    itemName.placeholder = 'npr. Mlijeko';
+    itemName.value = name || I18N.t('product.fallback', { code: barcode });
+    itemName.placeholder = I18N.t('item.namePh');
     itemCategory.value = offCategoryToApp(product.categories_tags);
     const pq = parseOffQuantity(String(product.quantity || product.product_quantity || ''));
     if (pq) {
@@ -1344,8 +1423,8 @@ async function handleBarcodeScanned(code) {
         applyOpenFoodProductToForm(product, code);
     } catch (e) {
         console.error(e);
-        alert('Greška pri dohvatu proizvoda. Provjeri vezu.');
-        itemName.placeholder = `Barkod: ${code}`;
+        alert(I18N.t('barcode.fetchError'));
+        itemName.placeholder = I18N.t('item.barcodePh', { code });
         itemName.value = '';
         itemName.focus();
     }
@@ -1353,11 +1432,11 @@ async function handleBarcodeScanned(code) {
 
 async function openBarcodeScanner() {
     if (!window.isSecureContext) {
-        alert('Skeniranje radi samo na sigurnoj vezi (HTTPS).');
+        alert(I18N.t('barcode.https'));
         return;
     }
     if (!('BarcodeDetector' in window)) {
-        alert('Ovaj preglednik nema ugrađeni skener barkoda. Koristi Chrome ili Safari na mobitelu.');
+        alert(I18N.t('barcode.unsupported'));
         return;
     }
 
@@ -1373,7 +1452,7 @@ async function openBarcodeScanner() {
         await barcodeVideo.play();
     } catch (e) {
         stopBarcodeScanner();
-        alert('Nema pristupa kameri. Provjeri dozvole u postavkama uređaja.');
+        alert(I18N.t('barcode.camera'));
         return;
     }
 
@@ -1387,7 +1466,7 @@ async function openBarcodeScanner() {
             detector = new BarcodeDetector();
         } catch (e2) {
             stopBarcodeScanner();
-            alert('Skeniranje barkoda nije dostupno na ovom uređaju.');
+            alert(I18N.t('barcode.unavailable'));
             return;
         }
     }
@@ -1436,8 +1515,8 @@ if (btnBarcodeCancel) btnBarcodeCancel.addEventListener('click', () => stopBarco
 //   MODAL: Add / Edit
 // =====================
 function openAddModal(target) {
-    modalTitle.textContent = target === 'inventar' ? 'Dodaj u smočnicu' : 'Dodaj na listu';
-    formBtnText.textContent = 'Dodaj';
+    modalTitle.textContent = target === 'inventar' ? I18N.t('modal.addPantry') : I18N.t('modal.addList');
+    formBtnText.textContent = I18N.t('modal.submitAdd');
     itemForm.reset();
     itemId.value = '';
     itemTarget.value = target;
@@ -1458,8 +1537,8 @@ function openEditModal(id, target) {
     const item = list.find(i => i.id == id);
     if (!item) return;
 
-    modalTitle.textContent = 'Uredi namirnicu';
-    formBtnText.textContent = 'Spremi';
+    modalTitle.textContent = I18N.t('modal.editItem');
+    formBtnText.textContent = I18N.t('modal.submitSave');
     itemName.value = item.name;
     itemQty.value = item.quantity;
     itemUnit.value = item.unit;
@@ -1490,12 +1569,12 @@ function addBulkShoppingRow(shouldFocus = true) {
     const wrap = document.createElement('div');
     wrap.className = 'bulk-shopping-row';
     wrap.innerHTML = `
-        <input type="text" class="bulk-name" placeholder="Naziv namirnice" autocomplete="off">
+        <input type="text" class="bulk-name" placeholder="${escapeHtml(I18N.t('bulk.namePh'))}" autocomplete="off">
         <div class="bulk-shopping-meta">
             <input type="number" class="bulk-qty" min="0.01" step="0.01" value="1">
             <select class="bulk-unit">${bulkUnitOptionsHtml('kom')}</select>
             <select class="bulk-cat">${bulkCategoryOptionsHtml('Ostalo')}</select>
-            <button type="button" class="bulk-row-remove" aria-label="Ukloni red">&times;</button>
+            <button type="button" class="bulk-row-remove" aria-label="${escapeHtml(I18N.t('bulk.removeRowAria'))}">&times;</button>
         </div>
     `;
     wrap.querySelector('.bulk-row-remove').addEventListener('click', () => {
@@ -1553,11 +1632,11 @@ if (btnBulkShoppingSave && bulkShoppingRows) {
             items.push({ name, quantity: qty, unit, category });
         });
         if (items.length === 0) {
-            alert('Unesi barem jednu namirnicu s nazivom i količinom većom od 0.');
+            alert(I18N.t('bulk.needOne'));
             return;
         }
         if (items.length > 40) {
-            alert('Najviše 40 stavki odjednom.');
+            alert(I18N.t('bulk.max40'));
             return;
         }
         btnBulkShoppingSave.disabled = true;
@@ -1565,7 +1644,7 @@ if (btnBulkShoppingSave && bulkShoppingRows) {
             await api('POST', '/shopping/batch', { items });
             await loadData();
             closeBulkShoppingModal();
-            alert(`Dodano na listu: ${items.length}.`);
+            alert(I18N.t('bulk.added', { n: items.length }));
         } catch (err) {
             alert(err.message);
         } finally {
@@ -1617,7 +1696,7 @@ itemName.addEventListener('input', () => {
             suggestionsEl.innerHTML = matches.map(m => `
                 <div class="suggestion-item" data-name="${escapeHtml(m.name)}" data-unit="${m.unit}" data-category="${m.category}">
                     ${CATEGORY_ICONS[m.category] || '📦'} ${escapeHtml(m.name)}
-                    <span class="suggestion-qty">(imate: ${formatQty(m.quantity)} ${m.unit})</span>
+                    <span class="suggestion-qty">${escapeHtml(I18N.t('sug.have'))} ${formatQty(m.quantity)} ${m.unit})</span>
                 </div>
             `).join('');
             suggestionsEl.classList.add('open');
@@ -1648,7 +1727,7 @@ itemName.addEventListener('blur', () => {
 function checkInventoryNotice(name) {
     const match = inventory.find(i => i.name.toLowerCase() === name.toLowerCase());
     if (match) {
-        inventoryNotice.textContent = `Već imate: ${formatQty(match.quantity)} ${match.unit} u smočnici`;
+        inventoryNotice.textContent = I18N.t('notice.have', { q: formatQty(match.quantity), u: match.unit });
         inventoryNotice.className = 'inventory-notice has-stock';
         inventoryNotice.style.display = 'block';
     } else {
@@ -1660,7 +1739,7 @@ function checkInventoryNotice(name) {
 function openConsumeModal(id) {
     const item = inventory.find(i => i.id == id);
     if (!item) return;
-    consumeInfo.innerHTML = `<strong>${escapeHtml(item.name)}</strong> — trenutno: ${formatQty(item.quantity)} ${item.unit}`;
+    consumeInfo.innerHTML = `<strong>${escapeHtml(item.name)}</strong> — ${escapeHtml(I18N.t('consume.current', { q: formatQty(item.quantity), u: item.unit }))}`;
     consumeQty.value = '';
     consumeQty.max = item.quantity;
     consumeQty.placeholder = `max ${formatQty(item.quantity)}`;
@@ -1738,8 +1817,8 @@ function renderCookbookList() {
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                 </svg>
-                <p>${search ? 'Nema rezultata' : 'Kuharica je prazna'}</p>
-                <span>${search ? 'Pokušajte drugi pojam' : 'Dodajte recept ručno ili spremite AI recept'}</span>
+                <p>${search ? escapeHtml(I18N.t('empty.search')) : escapeHtml(I18N.t('cookbook.empty'))}</p>
+                <span>${search ? escapeHtml(I18N.t('empty.tryOther')) : escapeHtml(I18N.t('cookbook.emptySub'))}</span>
             </div>`;
         return;
     }
@@ -1751,11 +1830,11 @@ function renderCookbookList() {
             <div class="cookbook-card-title">${escapeHtml(r.title)}</div>
             <div class="cookbook-card-meta">
                 ${r.prep_time ? `<span>⏱ ${escapeHtml(r.prep_time)}</span>` : ''}
-                ${r.difficulty ? `<span>📊 ${escapeHtml(r.difficulty)}</span>` : ''}
+                ${r.difficulty ? `<span>📊 ${escapeHtml(recipeDifficultyLabel(r.difficulty))}</span>` : ''}
                 ${r.servings ? `<span>👤 ${escapeHtml(r.servings)}</span>` : ''}
             </div>
-            <span class="cookbook-card-cat">${escapeHtml(r.category || 'Ostalo')}</span>
-            ${preview ? `<div class="cookbook-card-preview">Sastojci: ${escapeHtml(preview)}${ings.length > 3 ? '...' : ''}</div>` : ''}
+            <span class="cookbook-card-cat">${escapeHtml(recipeCategoryLabel(r.category || 'Ostalo'))}</span>
+            ${preview ? `<div class="cookbook-card-preview">${escapeHtml(I18N.t('cookbook.ingredients'))} ${escapeHtml(preview)}${ings.length > 3 ? '...' : ''}</div>` : ''}
         </div>`;
     }).join('');
 
@@ -1789,9 +1868,9 @@ function openRecipeDetail(id) {
         const invMatch = findInventoryMatch(ing.name);
         let status;
         if (invMatch) {
-            status = `<span class="ing-status ing-have">✓ Imate: ${formatQty(invMatch.quantity)} ${invMatch.unit}</span>`;
+            status = `<span class="ing-status ing-have">${escapeHtml(I18N.t('ing.have'))} ${formatQty(invMatch.quantity)} ${invMatch.unit}</span>`;
         } else {
-            status = `<span class="ing-status ing-miss">✗ Nedostaje</span>`;
+            status = `<span class="ing-status ing-miss">${escapeHtml(I18N.t('ing.miss'))}</span>`;
         }
         return `<li>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.name)} ${status}</li>`;
     }).join('');
@@ -1800,23 +1879,23 @@ function openRecipeDetail(id) {
         `<li><span class="step-num">${i + 1}</span><span>${escapeHtml(step)}</span></li>`
     ).join('');
 
-    const tip = r.tip ? `<div class="recipe-tip"><strong>Savjet:</strong> ${escapeHtml(r.tip)}</div>` : '';
+    const tip = r.tip ? `<div class="recipe-tip"><strong>${escapeHtml(I18N.t('recipe.tipLabel'))}</strong> ${escapeHtml(r.tip)}</div>` : '';
 
     recipeDetailCard.innerHTML = `
         <div class="recipe-header">
             <h3>${escapeHtml(r.title)}</h3>
             <div class="recipe-meta">
                 ${r.prep_time ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${escapeHtml(r.prep_time)}</span>` : ''}
-                ${r.difficulty ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>${escapeHtml(r.difficulty)}</span>` : ''}
+                ${r.difficulty ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>${escapeHtml(recipeDifficultyLabel(r.difficulty))}</span>` : ''}
                 ${r.servings ? `<span class="recipe-meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${escapeHtml(r.servings)}</span>` : ''}
             </div>
         </div>
         <div class="recipe-section">
-            <h4>Sastojci</h4>
+            <h4>${escapeHtml(I18N.t('recipe.ingTitle'))}</h4>
             <ul class="recipe-ingredients">${ingredientsList}</ul>
         </div>
         <div class="recipe-section">
-            <h4>Priprema</h4>
+            <h4>${escapeHtml(I18N.t('recipe.stepsTitle'))}</h4>
             <ol class="recipe-steps">${stepsList}</ol>
         </div>
         ${tip}
@@ -1832,13 +1911,13 @@ document.getElementById('btn-add-missing').addEventListener('click', async () =>
     const r = cookbookRecipes.find(r => r.id == selectedRecipeId);
     if (!r) return;
     const missing = recipeIngredientsArray(r).filter(ing => !findInventoryMatch(ing.name));
-    if (missing.length === 0) { alert('Imate sve sastojke!'); return; }
+    if (missing.length === 0) { alert(I18N.t('recipe.haveAllIng')); return; }
 
     const { added, skipped } = await addMissingIngredientsToShopping(r);
     let msg = '';
-    if (added > 0) msg = `${added} namirnica dodano na listu za kupovinu!`;
-    if (skipped > 0) msg += (msg ? ' ' : '') + `(${skipped} već na listi)`;
-    alert(msg || 'Ništa nije dodano.');
+    if (added > 0) msg = namirniceListaMsg(added);
+    if (skipped > 0) msg += (msg ? ' ' : '') + I18N.t('recipe.skippedSuffix', { n: skipped });
+    alert(msg || I18N.t('recipe.nothingAdded'));
 });
 
 document.getElementById('btn-edit-recipe').addEventListener('click', () => {
@@ -1847,13 +1926,13 @@ document.getElementById('btn-edit-recipe').addEventListener('click', () => {
 });
 
 document.getElementById('btn-delete-recipe').addEventListener('click', async () => {
-    if (!confirm('Obrisati ovaj recept iz kuharice?')) return;
+    if (!confirm(I18N.t('cookbook.confirmDeleteRecipe'))) return;
     try {
         await api('DELETE', `/cookbook/${selectedRecipeId}`);
         cookbookRecipes = cookbookRecipes.filter(r => r.id != selectedRecipeId);
         selectedRecipeId = null;
         showCookbookListView();
-        topBarTitle.textContent = PAGE_TITLES.kuharica;
+        topBarTitle.textContent = pageTitle('kuharica');
         btnBack.style.display = 'none';
         updateNavBadges();
     } catch (err) { alert(err.message); }
@@ -1873,8 +1952,8 @@ function addIngredientRow(amount = '', name = '') {
     const div = document.createElement('div');
     div.className = 'dynamic-row';
     div.innerHTML = `
-        <input type="text" class="row-amount" placeholder="Količina" value="${escapeHtml(amount)}">
-        <input type="text" placeholder="Naziv sastojka" value="${escapeHtml(name)}">
+        <input type="text" class="row-amount" placeholder="${escapeHtml(I18N.t('recipe.amountPh'))}" value="${escapeHtml(amount)}">
+        <input type="text" placeholder="${escapeHtml(I18N.t('recipe.ingPh'))}" value="${escapeHtml(name)}">
         <button type="button" class="btn-remove-row">&times;</button>
     `;
     div.querySelector('.btn-remove-row').addEventListener('click', () => div.remove());
@@ -1885,7 +1964,7 @@ function addStepRow(text = '') {
     const div = document.createElement('div');
     div.className = 'dynamic-row';
     div.innerHTML = `
-        <input type="text" placeholder="Opišite korak..." value="${escapeHtml(text)}">
+        <input type="text" placeholder="${escapeHtml(I18N.t('recipe.stepPh'))}" value="${escapeHtml(text)}">
         <button type="button" class="btn-remove-row">&times;</button>
     `;
     div.querySelector('.btn-remove-row').addEventListener('click', () => div.remove());
@@ -1896,8 +1975,8 @@ document.getElementById('btn-add-ingredient').addEventListener('click', () => ad
 document.getElementById('btn-add-step').addEventListener('click', () => addStepRow());
 
 function openRecipeFormModal(recipe = null) {
-    document.getElementById('recipe-modal-title').textContent = recipe ? 'Uredi recept' : 'Novi recept';
-    document.getElementById('recipe-form-btn-text').textContent = recipe ? 'Spremi izmjene' : 'Spremi recept';
+    document.getElementById('recipe-modal-title').textContent = recipe ? I18N.t('recipe.modalEdit') : I18N.t('recipe.modalNew');
+    document.getElementById('recipe-form-btn-text').textContent = recipe ? I18N.t('recipe.saveEdit') : I18N.t('recipe.saveNew');
     document.getElementById('recipe-edit-id').value = recipe ? recipe.id : '';
 
     if (recipe) {
@@ -1956,9 +2035,9 @@ recipeFormEl.addEventListener('submit', async (e) => {
         if (val) steps.push(val);
     });
 
-    if (!title) { alert('Unesite naziv jela'); return; }
-    if (ingredients.length === 0) { alert('Dodajte barem jedan sastojak'); return; }
-    if (steps.length === 0) { alert('Dodajte barem jedan korak'); return; }
+    if (!title) { alert(I18N.t('recipe.nameRequired')); return; }
+    if (ingredients.length === 0) { alert(I18N.t('recipe.ingRequired')); return; }
+    if (steps.length === 0) { alert(I18N.t('recipe.stepRequired')); return; }
 
     try {
         const body = { title, category, difficulty, prep_time, servings, ingredients, steps, tip };
@@ -1999,7 +2078,7 @@ document.getElementById('btn-save-ai-recipe').addEventListener('click', async ()
             tip: lastAiRecipe.tip || ''
         });
         await loadData();
-        alert('Recept spremljen u kuharicu!');
+        alert(I18N.t('recipe.saved'));
     } catch (err) { alert(err.message); }
 });
 
@@ -2026,8 +2105,8 @@ async function generateRecipe() {
 function renderRecipe(recipe) {
     const ingredientsList = recipe.ingredients.map(ing => {
         const fromInv = ing.from_inventory
-            ? '<span class="ing-tag ing-have">iz smočnice</span>'
-            : '<span class="ing-tag ing-extra">dodatno</span>';
+            ? `<span class="ing-tag ing-have">${escapeHtml(I18N.t('tag.pantry'))}</span>`
+            : `<span class="ing-tag ing-extra">${escapeHtml(I18N.t('tag.extra'))}</span>`;
         return `<li>${escapeHtml(ing.amount)} ${escapeHtml(ing.name)} ${fromInv}</li>`;
     }).join('');
 
@@ -2035,7 +2114,7 @@ function renderRecipe(recipe) {
         return `<li><span class="step-num">${i + 1}</span><span>${escapeHtml(step)}</span></li>`;
     }).join('');
 
-    const tip = recipe.tip ? `<div class="recipe-tip"><strong>Savjet:</strong> ${escapeHtml(recipe.tip)}</div>` : '';
+    const tip = recipe.tip ? `<div class="recipe-tip"><strong>${escapeHtml(I18N.t('recipe.tipLabel'))}</strong> ${escapeHtml(recipe.tip)}</div>` : '';
 
     recipeResult.innerHTML = `
         <div class="recipe-header">
@@ -2047,7 +2126,7 @@ function renderRecipe(recipe) {
                 </span>
                 <span class="recipe-meta-item">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-                    ${escapeHtml(recipe.difficulty)}
+                    ${escapeHtml(recipeDifficultyLabel(recipe.difficulty))}
                 </span>
                 <span class="recipe-meta-item">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -2056,11 +2135,11 @@ function renderRecipe(recipe) {
             </div>
         </div>
         <div class="recipe-section">
-            <h4>Sastojci</h4>
+            <h4>${escapeHtml(I18N.t('recipe.ingTitle'))}</h4>
             <ul class="recipe-ingredients">${ingredientsList}</ul>
         </div>
         <div class="recipe-section">
-            <h4>Priprema</h4>
+            <h4>${escapeHtml(I18N.t('recipe.stepsTitle'))}</h4>
             <ol class="recipe-steps">${stepsList}</ol>
         </div>
         ${tip}
@@ -2126,13 +2205,13 @@ btnInstall.addEventListener('click', async () => {
         const ua = navigator.userAgent;
         let msg = '';
         if (/iPhone|iPad|iPod/.test(ua)) {
-            msg = 'U Safariju: klikni Share dugme (kvadrat sa strelicom) → "Dodaj na početni zaslon"';
+            msg = I18N.t('install.ios');
         } else if (/Android/.test(ua)) {
-            msg = 'U Chromeu: klikni ⋮ (tri tačke gore desno) → "Dodaj na početni ekran" ili "Instaliraj aplikaciju"';
+            msg = I18N.t('install.android');
         } else {
-            msg = 'U browseru: klikni na ikonu instalacije u address baru ili u meniju browsera potražite "Instaliraj"';
+            msg = I18N.t('install.other');
         }
-        alert('Kako instalirati:\n\n' + msg);
+        alert(I18N.t('install.how') + msg);
     }
 });
 
@@ -2147,4 +2226,9 @@ window.addEventListener('appinstalled', () => {
 });
 
 // ---- Init ----
+I18N.applyStaticI18n();
+fillItemCategorySelect();
+document.querySelectorAll('.lang-select').forEach(sel => {
+    sel.addEventListener('change', () => I18N.setLang(sel.value));
+});
 checkAuth();
